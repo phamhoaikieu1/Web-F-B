@@ -1,0 +1,4896 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+public/
+  file.svg
+  globe.svg
+  next.svg
+  vercel.svg
+  window.svg
+src/
+  app/
+    admin/
+      import/
+        components/
+          ImportForm.tsx
+          ProductImportSelector.tsx
+        page.tsx
+      login/
+        page.tsx
+      orders/
+        components/
+          CartAndCheckoutForm.tsx
+          OrderDetailView.tsx
+          OrderProductSelector.tsx
+          OrderTable.tsx
+        new/
+          page.tsx
+        page.tsx
+      reports/
+        components/
+          AuditTrailLogTable.tsx
+          ReportMetricCards.tsx
+        page.tsx
+      settings/
+        page.tsx
+      staff/
+        components/
+          CreateStaffModal.tsx
+          StaffTable.tsx
+        page.tsx
+    cart/
+      components/
+        CartItemList.tsx
+        CheckoutForm.tsx
+        OrderSummaryCard.tsx
+      page.tsx
+    login/
+      page.tsx
+    products/
+      [id]/
+        page.tsx
+      page.tsx
+    wishlist/
+      page.tsx
+    favicon.ico
+    globals.css
+    layout.tsx
+    page.tsx
+  components/
+    Footer.tsx
+    Navbar.tsx
+    SearchBar.tsx
+  lib/
+    zalo.ts
+  types/
+    database.ts
+  middleware.ts
+.gitignore
+AGENTS.md
+CLAUDE.md
+eslint.config.mjs
+next.config.ts
+package.json
+postcss.config.mjs
+README.md
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/app/admin/import/components/ImportForm.tsx">
+'use client'
+
+import { ArrowDownLeft, Package } from 'lucide-react'
+import { Product } from '@/types/database'
+
+interface ImportFormProps {
+  selectedProduct: Product | null
+  importQty: number
+  setImportQty: (qty: number) => void
+  importCostPrice: number
+  setImportCostPrice: (price: number) => void
+  notes: string
+  setNotes: (notes: string) => void
+  isSubmitting: boolean
+  onSubmit: (e: React.FormEvent) => void
+}
+
+export default function ImportForm({
+  selectedProduct,
+  importQty,
+  setImportQty,
+  importCostPrice,
+  setImportCostPrice,
+  notes,
+  setNotes,
+  isSubmitting,
+  onSubmit,
+}: ImportFormProps) {
+  if (!selectedProduct) {
+    return (
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-h-[500px] text-slate-400 text-sm space-y-2 py-20">
+        <Package className="w-12 h-12 text-slate-300" />
+        <p>Bấm chọn 1 mặt hàng ở danh sách bên trái để lập phiếu nhập kho</p>
+      </div>
+    )
+  }
+
+  const baseQtyImport = importQty * selectedProduct.conversion_rate
+  const newStockQuantity = selectedProduct.stock_quantity + baseQtyImport
+  const currentImportCostPerBaseUnit = importCostPrice / selectedProduct.conversion_rate
+  const oldTotalValue = selectedProduct.stock_quantity * Number(selectedProduct.cost_price || 0)
+  const newImportValue = baseQtyImport * currentImportCostPerBaseUnit
+  const previewMovingAverage = newStockQuantity > 0 
+    ? (oldTotalValue + newImportValue) / newStockQuantity 
+    : currentImportCostPerBaseUnit
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[500px]">
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div>
+          <div className="flex items-center gap-2 text-blue-600 font-bold text-lg mb-2">
+            <ArrowDownLeft className="w-6 h-6" /> PHIẾU NHẬP KHO
+          </div>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <span className="text-xs font-mono text-blue-600 font-bold">{selectedProduct.id}</span>
+            <h3 className="font-bold text-slate-900 text-base">{selectedProduct.name}</h3>
+            <div className="text-xs text-slate-500 mt-1">
+              Tồn kho hiện tại: <strong className="text-slate-900">{selectedProduct.stock_quantity} {selectedProduct.base_unit}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Số Lượng Nhập Kho (Theo {selectedProduct.unit}):
+            </label>
+            <input
+              type="number"
+              min="1"
+              required
+              value={importQty}
+              onChange={(e) => setImportQty(Number(e.target.value))}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <span className="text-xs text-slate-400 mt-1 block">
+              Sẽ quy đổi cộng vào kho: <strong>+{baseQtyImport} {selectedProduct.base_unit}</strong>
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Giá Nhập Vốn Nguyên {selectedProduct.unit} (VNĐ):
+            </label>
+            <input
+              type="number"
+              min="0"
+              required
+              value={importCostPrice}
+              onChange={(e) => setImportCostPrice(Number(e.target.value))}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-emerald-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs space-y-1">
+            <p className="text-blue-800 font-medium">📐 Thuật toán Bình quân gia quyền di động:</p>
+            <p className="text-slate-600">
+              Giá vốn BQ dự kiến: <strong className="text-blue-700 font-bold">{Math.round(previewMovingAverage).toLocaleString('vi-VN')} đ / {selectedProduct.base_unit}</strong>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Ghi Chú Nhập Kho:
+            </label>
+            <textarea
+              rows={2}
+              placeholder="Tên nhà cung cấp, số hóa đơn chứng từ..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 pt-4 space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-slate-600">Tổng tồn sau khi nhập:</span>
+            <span className="font-bold text-blue-600 text-lg">
+              {newStockQuantity} {selectedProduct.base_unit}
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors text-sm cursor-pointer disabled:bg-slate-300"
+          >
+            {isSubmitting ? 'Đang lưu phiếu nhập...' : 'XÁC NHẬN NHẬP KHO'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/import/components/ProductImportSelector.tsx">
+'use client'
+
+import { Search } from 'lucide-react'
+import { Product } from '@/types/database'
+
+interface ProductImportSelectorProps {
+  products: Product[]
+  searchTerm: string
+  setSearchTerm: (term: string) => void
+  selectedProduct: Product | null
+  onSelectProduct: (product: Product) => void
+}
+
+export default function ProductImportSelector({
+  products,
+  searchTerm,
+  setSearchTerm,
+  selectedProduct,
+  onSelectProduct,
+}: ProductImportSelectorProps) {
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Gõ tên hoặc mã SKU để chọn mặt hàng cần nhập kho..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-100">
+          {filteredProducts.map((p) => {
+            const isSelected = selectedProduct?.id === p.id
+            return (
+              <div
+                key={p.id}
+                onClick={() => onSelectProduct(p)}
+                className={`p-4 flex justify-between items-center cursor-pointer transition-colors ${
+                  isSelected ? 'bg-blue-50/80 border-l-4 border-blue-600' : 'hover:bg-slate-50'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-mono text-xs font-semibold text-blue-600">{p.id}</span>
+                    <span className="text-xs font-mono text-slate-400">{p.sku}</span>
+                  </div>
+                  <h3 className="font-medium text-slate-900 text-sm">{p.name}</h3>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Quy đổi: 1 {p.unit} = {p.conversion_rate} {p.base_unit}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-xs text-slate-400 mb-1">Tồn hiện tại</div>
+                  <span className="text-sm font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                    {p.stock_quantity} {p.base_unit}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/import/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+import { CheckCircle } from 'lucide-react'
+import ProductImportSelector from './components/ProductImportSelector'
+import ImportForm from './components/ImportForm'
+
+export default function InventoryImportPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  
+  const [importQty, setImportQty] = useState<number>(1)
+  const [importCostPrice, setImportCostPrice] = useState<number>(0)
+  const [notes, setNotes] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from('products').select('*').order('name')
+    if (error) console.error('Lỗi lấy danh sách sản phẩm:', error)
+    else setProducts(data || [])
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const handleSelectProduct = (p: Product) => {
+    setSelectedProduct(p)
+    setImportCostPrice(Number(p.cost_price) * p.conversion_rate || Number(p.price))
+  }
+
+  const handleSubmitImport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProduct) return alert('Vui lòng chọn 1 sản phẩm để nhập kho!')
+    if (importQty <= 0) return alert('Số lượng nhập phải lớn hơn 0!')
+
+    setIsSubmitting(true)
+    try {
+      const baseQtyImport = importQty * selectedProduct.conversion_rate
+      const newStockQuantity = selectedProduct.stock_quantity + baseQtyImport
+      const currentImportCostPerBaseUnit = importCostPrice / selectedProduct.conversion_rate
+
+      const oldTotalValue = selectedProduct.stock_quantity * Number(selectedProduct.cost_price || 0)
+      const newImportValue = baseQtyImport * currentImportCostPerBaseUnit
+      const newMovingAverageCost = newStockQuantity > 0 
+        ? (oldTotalValue + newImportValue) / newStockQuantity 
+        : currentImportCostPerBaseUnit
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          stock_quantity: newStockQuantity,
+          cost_price: Math.round(newMovingAverageCost * 100) / 100,
+        })
+        .eq('id', selectedProduct.id)
+
+      if (updateError) throw updateError
+
+      const refCode = `NK-${Math.floor(10000 + Math.random() * 90000)}`
+      
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { error: logError } = await supabase
+        .from('inventory_transactions')
+        .insert({
+          product_id: selectedProduct.id,
+          type: 'IMPORT',
+          quantity: baseQtyImport,
+          cost_price: currentImportCostPerBaseUnit,
+          reference_id: refCode,
+          notes: notes.trim() || `Nhập ${importQty} ${selectedProduct.unit} (Giá BQ di động: ${Math.round(newMovingAverageCost).toLocaleString('vi-VN')} đ/${selectedProduct.base_unit})`,
+          created_by: user?.id || null,
+        })
+
+      if (logError) throw logError
+
+      setSuccessMsg(`Nhập kho thành công! Mã phiếu: ${refCode}. Giá vốn bình quân di động mới: ${Math.round(newMovingAverageCost).toLocaleString('vi-VN')} đ/${selectedProduct.base_unit}`)
+      setSelectedProduct(null)
+      setImportQty(1)
+      setNotes('')
+      fetchProducts()
+    } catch (error: any) {
+      console.error(error)
+      alert(`Lỗi nhập kho: ${error.message || 'Không thể nhập kho'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">Lập Phiếu Nhập Kho Nguyên Liệu</h1>
+        <p className="text-sm text-slate-500">Cộng số lượng tồn kho & tính giá vốn bình quân gia quyền di động</p>
+      </header>
+
+      {successMsg && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-emerald-600" />
+            <p className="font-medium text-sm">{successMsg}</p>
+          </div>
+          <button
+            onClick={() => setSuccessMsg(null)}
+            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-7">
+          <ProductImportSelector
+            products={products}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedProduct={selectedProduct}
+            onSelectProduct={handleSelectProduct}
+          />
+        </div>
+
+        <div className="lg:col-span-5">
+          <ImportForm
+            selectedProduct={selectedProduct}
+            importQty={importQty}
+            setImportQty={setImportQty}
+            importCostPrice={importCostPrice}
+            setImportCostPrice={setImportCostPrice}
+            notes={notes}
+            setNotes={setNotes}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmitImport}
+          />
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/login/page.tsx">
+'use client'
+
+import { useState } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
+import { Lock, Mail, ShieldCheck } from 'lucide-react'
+
+export default function AdminLoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
+
+    if (error) {
+      alert(`Đăng nhập thất bại: ${error.message}`)
+    } else {
+      // Đăng nhập thành công -> Chuyển thẳng tới trang Quản lý đơn hàng
+      router.push('/admin/orders')
+      router.refresh()
+    }
+    setLoading(false)
+  }
+
+  return (
+    <main className="min-h-[85vh] flex items-center justify-center p-4 bg-slate-100">
+      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex bg-slate-900 p-3.5 rounded-2xl text-emerald-400 mb-1 shadow-md">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Cổng Quản Trị Nội Bộ</h1>
+          <p className="text-xs text-slate-500">Dành riêng cho Owner, Admin Kho & Nhân viên POS</p>
+        </div>
+
+        <form onSubmit={handleAdminLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Email nhân sự:</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                required
+                placeholder="admin@fb-b2b.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu khẩu nội bộ:</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all text-xs cursor-pointer disabled:bg-slate-300 shadow-md flex items-center justify-center gap-2"
+          >
+            {loading ? 'ĐANG XÁC THỰC...' : 'ĐĂNG NHẬP HỆ THỐNG QUẢN TRỊ'}
+          </button>
+        </form>
+
+        <div className="text-center pt-2">
+          <span className="text-[11px] text-slate-400">
+            Hệ thống bảo mật nội bộ B2B F&B Management
+          </span>
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/components/CartAndCheckoutForm.tsx">
+'use client'
+
+import { ShoppingCart, Plus, Minus } from 'lucide-react'
+import { Product } from '@/types/database'
+
+export interface CartItem {
+  product: Product
+  selectedUnit: string
+  isBaseUnit: boolean
+  quantity: number
+  unitPrice: number
+}
+
+interface CartAndCheckoutFormProps {
+  cart: CartItem[]
+  onUpdateQuantity: (cartKey: string, delta: number) => void
+  totalAmount: number
+  customerName: string
+  setCustomerName: (v: string) => void
+  storeName: string
+  setStoreName: (v: string) => void
+  customerPhone: string
+  setCustomerPhone: (v: string) => void
+  customerAddress: string
+  setCustomerAddress: (v: string) => void
+  notes: string
+  setNotes: (v: string) => void
+  isSubmitting: boolean
+  onSubmitOrder: (e: React.FormEvent) => void
+}
+
+export default function CartAndCheckoutForm({
+  cart,
+  onUpdateQuantity,
+  totalAmount,
+  customerName,
+  setCustomerName,
+  storeName,
+  setStoreName,
+  customerPhone,
+  setCustomerPhone,
+  customerAddress,
+  setCustomerAddress,
+  notes,
+  setNotes,
+  isSubmitting,
+  onSubmitOrder,
+}: CartAndCheckoutFormProps) {
+  return (
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+      <form onSubmit={onSubmitOrder} className="space-y-6">
+        <div>
+          <h2 className="font-bold text-slate-900 text-lg flex items-center gap-2 mb-4">
+            <ShoppingCart className="w-5 h-5 text-blue-600" /> Giỏ Hàng B2B
+          </h2>
+
+          <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+            {cart.length === 0 ? (
+              <p className="text-center py-8 text-slate-400 text-sm">
+                Chưa có sản phẩm nào được chọn
+              </p>
+            ) : (
+              cart.map((item) => {
+                const cartKey = `${item.product.id}-${item.selectedUnit}`
+                return (
+                  <div
+                    key={cartKey}
+                    className="flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900 truncate">
+                        {item.product.name}
+                      </p>
+                      <p className="text-xs text-emerald-600 font-medium">
+                        {Math.round(item.unitPrice).toLocaleString('vi-VN')} đ /{' '}
+                        <span className="font-bold text-blue-600">{item.selectedUnit}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateQuantity(cartKey, -1)}
+                        className="p-1 text-slate-500 hover:bg-slate-200 rounded cursor-pointer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateQuantity(cartKey, 1)}
+                        className="p-1 text-slate-500 hover:bg-slate-200 rounded cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="text-right min-w-[80px]">
+                      <p className="text-xs font-bold text-slate-900">
+                        {Math.round(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
+                      </p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 pt-4 space-y-3">
+          <h3 className="font-semibold text-slate-900 text-sm">Thông Tin Khách Hàng & Giao Hàng</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Tên chủ quán / Khách hàng"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              placeholder="Tên quán / Thương hiệu"
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              required
+              placeholder="Số điện thoại Zalo *"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              required
+              placeholder="Địa chỉ giao hàng chi tiết *"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <textarea
+            placeholder="Ghi chú đơn hàng (nếu có)..."
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+          />
+        </div>
+
+        <div className="border-t border-slate-200 pt-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-slate-700">Tổng Thành Tiền:</span>
+            <span className="text-xl font-bold text-blue-600">
+              {Math.round(totalAmount).toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || cart.length === 0}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition-colors text-sm cursor-pointer"
+          >
+            {isSubmitting ? 'Đang tạo đơn...' : 'XÁC NHẬN TẠO ĐƠN HÀNG'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/components/OrderDetailView.tsx">
+'use client'
+
+import { Eye, PackageCheck } from 'lucide-react'
+import { Order, OrderItem, Product } from '@/types/database'
+
+export interface ExtendedOrderItem extends OrderItem {
+  products?: Product
+}
+
+interface OrderDetailViewProps {
+  selectedOrder: Order | null
+  orderItems: ExtendedOrderItem[]
+  processingId: string | null
+  onFulfillOrder: (order: Order) => void
+}
+
+export default function OrderDetailView({
+  selectedOrder,
+  orderItems,
+  processingId,
+  onFulfillOrder,
+}: OrderDetailViewProps) {
+  if (!selectedOrder) {
+    return (
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-h-[500px] text-slate-400 text-sm space-y-2 py-20">
+        <Eye className="w-10 h-10 text-slate-300" />
+        <p>Bấm vào biểu tượng mắt ở cột thao tác để xem chi tiết đơn hàng</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between min-h-[500px]">
+      <div className="space-y-6">
+        <div className="border-b border-slate-100 pb-4">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <span className="text-xs text-slate-400">Chi tiết đơn hàng</span>
+              <h2 className="text-xl font-bold font-mono text-blue-600">
+                {selectedOrder.order_code}
+              </h2>
+            </div>
+            {selectedOrder.status === 'PENDING' ? (
+              <span className="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-semibold">
+                Chờ duyệt xuất kho
+              </span>
+            ) : (
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">
+                Đã hoàn thành
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-slate-500 space-y-1 mt-3">
+            <p>
+              <strong>Khách hàng:</strong> {selectedOrder.customer_name}
+            </p>
+            <p>
+              <strong>Số điện thoại:</strong> {selectedOrder.customer_phone}
+            </p>
+            <p>
+              <strong>Địa chỉ:</strong> {selectedOrder.customer_address}
+            </p>
+            {selectedOrder.notes && (
+              <p className="italic text-slate-600">
+                <strong>Ghi chú:</strong> {selectedOrder.notes}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase text-slate-400 mb-3 tracking-wider">
+            Danh sách sản phẩm đặt
+          </h3>
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+            {orderItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs"
+              >
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className="font-semibold text-slate-900 truncate">
+                    {item.products?.name || item.product_id}
+                  </p>
+                  <p className="text-slate-500">
+                    {Number(item.unit_price).toLocaleString('vi-VN')} đ ×{' '}
+                    <strong>{item.quantity}</strong>
+                  </p>
+                </div>
+                <div className="font-bold text-slate-900 text-right">
+                  {Number(item.subtotal).toLocaleString('vi-VN')} đ
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 pt-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-slate-700">Tổng Thành Tiền:</span>
+            <span className="text-2xl font-bold text-blue-600">
+              {Number(selectedOrder.total_amount).toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+
+          {selectedOrder.status === 'PENDING' && (
+            <button
+              onClick={() => onFulfillOrder(selectedOrder)}
+              disabled={processingId === selectedOrder.id}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-300"
+            >
+              <PackageCheck className="w-5 h-5" />
+              {processingId === selectedOrder.id
+                ? 'Đang xử lý xuất kho...'
+                : 'XÁC NHẬN & XUẤT KHO'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/components/OrderProductSelector.tsx">
+'use client'
+
+import { Search, Plus } from 'lucide-react'
+import { Product } from '@/types/database'
+
+interface OrderProductSelectorProps {
+  products: Product[]
+  searchTerm: string
+  setSearchTerm: (term: string) => void
+  selectedUnits: { [productId: string]: 'UNIT' | 'BASE' }
+  onUnitChange: (productId: string, unitType: 'UNIT' | 'BASE') => void
+  onAddToCart: (product: Product) => void
+}
+
+export default function OrderProductSelector({
+  products,
+  searchTerm,
+  setSearchTerm,
+  selectedUnits,
+  onUnitChange,
+  onAddToCart,
+}: OrderProductSelectorProps) {
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Gõ tên hoặc mã SKU để tìm chọn nhanh..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[650px] overflow-y-auto pr-1">
+        {filteredProducts.map((p) => {
+          const currentUnitType = selectedUnits[p.id] || 'UNIT'
+          const isBaseSelected = currentUnitType === 'BASE'
+          const basePrice = Number(p.price) / p.conversion_rate
+
+          return (
+            <div
+              key={p.id}
+              className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-blue-400 transition-colors"
+            >
+              <div>
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <span className="font-mono text-xs text-blue-600 font-semibold">{p.id}</span>
+                  <span className="text-xs text-slate-400 font-mono">{p.sku}</span>
+                </div>
+                <h3 className="font-medium text-slate-900 text-sm line-clamp-2">{p.name}</h3>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-500 font-medium">Đơn vị đặt:</span>
+                  <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => onUnitChange(p.id, 'UNIT')}
+                      className={`px-2.5 py-1 rounded-md transition-all font-semibold cursor-pointer ${
+                        !isBaseSelected
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {p.unit} (Sỉ)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUnitChange(p.id, 'BASE')}
+                      className={`px-2.5 py-1 rounded-md transition-all font-semibold cursor-pointer ${
+                        isBaseSelected
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {p.base_unit} (Lẻ)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-slate-400">
+                      Quy đổi: 1 {p.unit} = {p.conversion_rate} {p.base_unit}
+                    </div>
+                    <div className="text-sm font-bold text-emerald-600">
+                      {isBaseSelected
+                        ? `${Math.round(basePrice).toLocaleString('vi-VN')} đ / ${p.base_unit}`
+                        : `${Number(p.price).toLocaleString('vi-VN')} đ / ${p.unit}`}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onAddToCart(p)}
+                    className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 p-2 rounded-lg transition-colors cursor-pointer"
+                    title="Thêm vào giỏ"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/components/OrderTable.tsx">
+'use client'
+
+import { Clock, CheckCircle, Eye } from 'lucide-react'
+import { Order } from '@/types/database'
+
+interface OrderTableProps {
+  orders: Order[]
+  loading: boolean
+  onViewOrder: (order: Order) => void
+}
+
+export default function OrderTable({
+  orders,
+  loading,
+  onViewOrder,
+}: OrderTableProps) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
+            <th className="p-4">Mã Đơn</th>
+            <th className="p-4">Khách Hàng / Quán</th>
+            <th className="p-4 text-right">Tổng Tiền</th>
+            <th className="p-4 text-center">Trạng Thái</th>
+            <th className="p-4 text-center">Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 text-sm">
+          {loading ? (
+            <tr>
+              <td colSpan={5} className="p-8 text-center text-slate-400">
+                Đang tải danh sách đơn hàng...
+              </td>
+            </tr>
+          ) : orders.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="p-8 text-center text-slate-400">
+                Chưa có đơn hàng nào
+              </td>
+            </tr>
+          ) : (
+            orders.map((o) => (
+              <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                <td className="p-4 font-mono font-bold text-blue-600">
+                  {o.order_code}
+                </td>
+                <td className="p-4">
+                  <div className="font-semibold text-slate-900">
+                    {o.customer_name}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {o.customer_phone}
+                  </div>
+                </td>
+                <td className="p-4 text-right font-bold text-slate-900">
+                  {Number(o.total_amount).toLocaleString('vi-VN')} đ
+                </td>
+                <td className="p-4 text-center">
+                  {o.status === 'PENDING' ? (
+                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-xs font-medium">
+                      <Clock className="w-3.5 h-3.5" /> PENDING
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-medium">
+                      <CheckCircle className="w-3.5 h-3.5" /> COMPLETED
+                    </span>
+                  )}
+                </td>
+                <td className="p-4 text-center">
+                  <button
+                    onClick={() => onViewOrder(o)}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                    title="Xem chi tiết"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/new/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '../../../types/database'
+import { CheckCircle } from 'lucide-react'
+import OrderProductSelector from '../components/OrderProductSelector'
+import CartAndCheckoutForm, { CartItem } from '../components/CartAndCheckoutForm'
+
+export default function CreateOrderPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [successCode, setSuccessCode] = useState<string | null>(null)
+
+  const [selectedUnits, setSelectedUnits] = useState<{ [productId: string]: 'UNIT' | 'BASE' }>({})
+
+  const [customerName, setCustomerName] = useState('')
+  const [storeName, setStoreName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
+  const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    async function fetchProducts() {
+      const { data, error } = await supabase.from('products').select('*').order('name')
+      if (error) {
+        console.error('Lỗi lấy danh sách sản phẩm:', error)
+      } else if (data) {
+        setProducts(data)
+      }
+    }
+    fetchProducts()
+  }, [])
+
+  const handleUnitChange = (productId: string, unitType: 'UNIT' | 'BASE') => {
+    setSelectedUnits((prev) => ({ ...prev, [productId]: unitType }))
+  }
+
+  const addToCart = (product: Product) => {
+    const unitType = selectedUnits[product.id] || 'UNIT'
+    const isBase = unitType === 'BASE'
+    const unitName = isBase ? product.base_unit : product.unit
+    
+    const calculatedUnitPrice = isBase
+      ? Number(product.price) / product.conversion_rate
+      : Number(product.price)
+
+    setCart((prev) => {
+      const cartKey = `${product.id}-${unitName}`
+      const existing = prev.find(
+        (item) => `${item.product.id}-${item.selectedUnit}` === cartKey
+      )
+
+      if (existing) {
+        return prev.map((item) =>
+          `${item.product.id}-${item.selectedUnit}` === cartKey
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      }
+
+      return [
+        ...prev,
+        {
+          product,
+          selectedUnit: unitName,
+          isBaseUnit: isBase,
+          quantity: 1,
+          unitPrice: calculatedUnitPrice,
+        },
+      ]
+    })
+  }
+
+  const updateQuantity = (cartKey: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (`${item.product.id}-${item.selectedUnit}` === cartKey) {
+            const newQty = item.quantity + delta
+            return newQty > 0 ? { ...item, quantity: newQty } : null
+          }
+          return item
+        })
+        .filter(Boolean) as CartItem[]
+    )
+  }
+
+  const totalAmount = cart.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0
+  )
+
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (cart.length === 0) return alert('Vui lòng chọn ít nhất 1 sản phẩm vào giỏ hàng!')
+    if (!customerName.trim() && !storeName.trim()) return alert('Vui lòng điền Tên khách hàng HOẶC Tên quán!')
+    if (!customerPhone.trim() || !customerAddress.trim()) return alert('Vui lòng nhập đầy đủ Số điện thoại và Địa chỉ giao hàng!')
+
+    setIsSubmitting(true)
+    try {
+      const now = new Date()
+      const yy = String(now.getFullYear()).slice(-2)
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const dd = String(now.getDate()).padStart(2, '0')
+      const random4 = Math.floor(1000 + Math.random() * 9000)
+      const orderCode = `ORD-${yy}${mm}${dd}-${random4}`
+
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_code: orderCode,
+          customer_name: customerName.trim() || storeName.trim(),
+          store_name: storeName.trim() || null,
+          customer_phone: customerPhone.trim(),
+          customer_address: customerAddress.trim(),
+          total_amount: totalAmount,
+          status: 'PENDING',
+          notes: notes.trim() || null,
+        })
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      for (const item of cart) {
+        const subtotal = item.unitPrice * item.quantity
+        const { error: itemError } = await supabase.from('order_items').insert({
+          order_id: orderData.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          subtotal: subtotal,
+        })
+
+        if (itemError) throw itemError
+      }
+
+      setSuccessCode(orderCode)
+      setCart([])
+      setCustomerName('')
+      setStoreName('')
+      setCustomerPhone('')
+      setCustomerAddress('')
+      setNotes('')
+    } catch (error: any) {
+      console.error('Lỗi khi tạo đơn:', error)
+      alert(`Không thể tạo đơn hàng! Lỗi chi tiết: ${error.message || 'Lỗi không xác định'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">Tạo Đơn Bán Sỉ (POS)</h1>
+        <p className="text-sm text-slate-500">Lập đơn hàng B2B linh hoạt mua sỉ / mua lẻ theo đợt</p>
+      </header>
+
+      {successCode && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-emerald-600" />
+            <div>
+              <p className="font-bold">Đã tạo đơn hàng thành công (Trạng thái: PENDING)!</p>
+              <p className="text-sm">
+                Mã đơn hàng: <strong className="font-mono text-emerald-700">{successCode}</strong>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSuccessCode(null)}
+            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-7">
+          <OrderProductSelector
+            products={products}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedUnits={selectedUnits}
+            onUnitChange={handleUnitChange}
+            onAddToCart={addToCart}
+          />
+        </div>
+
+        <div className="lg:col-span-5">
+          <CartAndCheckoutForm
+            cart={cart}
+            onUpdateQuantity={updateQuantity}
+            totalAmount={totalAmount}
+            customerName={customerName}
+            setCustomerName={setCustomerName}
+            storeName={storeName}
+            setStoreName={setStoreName}
+            customerPhone={customerPhone}
+            setCustomerPhone={setCustomerPhone}
+            customerAddress={customerAddress}
+            setCustomerAddress={setCustomerAddress}
+            notes={notes}
+            setNotes={setNotes}
+            isSubmitting={isSubmitting}
+            onSubmitOrder={handleSubmitOrder}
+          />
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/orders/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Order } from '@/types/database'
+import OrderTable from './components/OrderTable'
+import OrderDetailView, { ExtendedOrderItem } from './components/OrderDetailView'
+
+export default function OrdersListPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [orders, setOrders] = useState<Order[]>([])
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [orderItems, setOrderItems] = useState<ExtendedOrderItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+
+  const fetchOrders = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) console.error('Lỗi lấy danh sách đơn:', error)
+    else setOrders(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchOrders()
+  }, [])
+
+  const handleViewOrder = async (order: Order) => {
+    setSelectedOrder(order)
+    const { data, error } = await supabase
+      .from('order_items')
+      .select('*, products(*)')
+      .eq('order_id', order.id)
+
+    if (error) {
+      console.error('Lỗi lấy chi tiết đơn:', error)
+    } else if (data) {
+      // Ép kiểu an toàn cho unit_price và subtotal
+      const formattedItems: ExtendedOrderItem[] = data.map((item: any) => ({
+        ...item,
+        unit_price: Number(item.unit_price) || 0,
+        subtotal: Number(item.subtotal) || 0,
+      }))
+      setOrderItems(formattedItems)
+    }
+  }
+
+  const handleFulfillOrder = async (order: Order) => {
+    if (!confirm(`Xác nhận duyệt và xuất kho cho đơn hàng ${order.order_code}?`)) return
+
+    setProcessingId(order.id)
+    try {
+      const { data: items, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, products(*)')
+        .eq('order_id', order.id)
+
+      if (itemsError || !items) throw new Error('Không thể lấy chi tiết đơn hàng')
+
+      for (const rawItem of items) {
+        const item = rawItem as ExtendedOrderItem
+        const product = item.products
+        if (!product) continue
+
+        // Ép Number() an toàn trước khi so sánh
+        const itemUnitPrice = Number(item.unit_price)
+        const productPrice = Number(product.price)
+        
+        // Kiểm tra xem đơn hàng đặt theo Đơn vị lẻ (BASE) hay Đơn vị sỉ (UNIT)
+        const isBaseUnit = itemUnitPrice < productPrice
+        const baseQtyToDeduct = isBaseUnit
+          ? Number(item.quantity)
+          : Number(item.quantity) * Number(product.conversion_rate)
+
+        // 1. Trừ tồn kho sản phẩm
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            stock_quantity: Number(product.stock_quantity) - baseQtyToDeduct,
+          })
+          .eq('id', product.id)
+
+        if (updateError) throw updateError
+
+        // 2. Lưu vết Audit Trail
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const { error: logError } = await supabase
+          .from('inventory_transactions')
+          .insert({
+            product_id: product.id,
+            type: 'EXPORT_ORDER',
+            quantity: -baseQtyToDeduct,
+            cost_price: Number(product.cost_price) || 0,
+            reference_id: order.order_code,
+            notes: `Xuất kho cho đơn hàng ${order.order_code}`,
+            created_by: user?.id || null,
+          })
+
+        if (logError) throw logError
+      }
+
+      // 3. Chuyển trạng thái đơn sang COMPLETED
+      const { error: orderUpdateError } = await supabase
+        .from('orders')
+        .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+        .eq('id', order.id)
+
+      if (orderUpdateError) throw orderUpdateError
+
+      alert(`Đã xuất kho thành công đơn hàng ${order.order_code}!`)
+      if (selectedOrder?.id === order.id) {
+        setSelectedOrder({ ...selectedOrder, status: 'COMPLETED' })
+      }
+      fetchOrders()
+    } catch (error: any) {
+      console.error(error)
+      alert(`Lỗi xuất kho: ${error.message || 'Có lỗi xảy ra'}`)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  return (
+    <main className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900">Danh Sách Đơn Hàng B2B</h1>
+        <p className="text-sm text-slate-500">
+          Quản lý, xem chi tiết và duyệt xuất kho cho các đơn hàng PENDING
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-7">
+          <OrderTable
+            orders={orders}
+            loading={loading}
+            onViewOrder={handleViewOrder}
+          />
+        </div>
+
+        <div className="lg:col-span-5">
+          <OrderDetailView
+            selectedOrder={selectedOrder}
+            orderItems={orderItems}
+            processingId={processingId}
+            onFulfillOrder={handleFulfillOrder}
+          />
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/reports/components/AuditTrailLogTable.tsx">
+'use client'
+
+import { History, Filter, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { Product } from '@/types/database'
+
+export interface TransactionItem {
+  id: string
+  product_id: string
+  type: 'IMPORT' | 'EXPORT_ORDER' | 'ADJUSTMENT' | string
+  quantity: number
+  cost_price: number
+  reference_id?: string | null
+  notes?: string | null
+  created_at: string
+  products?: Product | null
+}
+
+interface AuditTrailLogTableProps {
+  transactions: TransactionItem[]
+  loading: boolean
+  typeFilter: 'ALL' | 'IMPORT' | 'EXPORT_ORDER' | 'ADJUSTMENT'
+  setTypeFilter: (filter: 'ALL' | 'IMPORT' | 'EXPORT_ORDER' | 'ADJUSTMENT') => void
+  totalImportCount: number
+  totalExportCount: number
+}
+
+export default function AuditTrailLogTable({
+  transactions,
+  loading,
+  typeFilter,
+  setTypeFilter,
+  totalImportCount,
+  totalExportCount,
+}: AuditTrailLogTableProps) {
+  const filteredTransactions = transactions.filter((t) => {
+    if (typeFilter === 'ALL') return true
+    return t.type === typeFilter
+  })
+
+  return (
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden space-y-4 p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-2 font-bold text-slate-900 text-lg">
+          <History className="w-5 h-5 text-blue-600" /> Nhật Ký Chi Tiết Biến Động Kho
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <div className="flex bg-slate-100 p-0.5 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setTypeFilter('ALL')}
+              className={`px-3 py-1.5 rounded-md transition-all font-medium cursor-pointer ${
+                typeFilter === 'ALL' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600'
+              }`}
+            >
+              Tất cả ({transactions.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('IMPORT')}
+              className={`px-3 py-1.5 rounded-md transition-all font-medium cursor-pointer ${
+                typeFilter === 'IMPORT' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-600'
+              }`}
+            >
+              Nhập kho ({totalImportCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('EXPORT_ORDER')}
+              className={`px-3 py-1.5 rounded-md transition-all font-medium cursor-pointer ${
+                typeFilter === 'EXPORT_ORDER' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600'
+              }`}
+            >
+              Xuất kho ({totalExportCount})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
+              <th className="p-4">Thời Gian</th>
+              <th className="p-4">Loại Biến Động</th>
+              <th className="p-4">Sản Phẩm</th>
+              <th className="p-4 text-right">Số Lượng Qui Đổi</th>
+              <th className="p-4">Mã Tham Chiếu</th>
+              <th className="p-4">Ghi Chú</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-sm">
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-400">Đang tải lịch sử kho...</td>
+              </tr>
+            ) : filteredTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-slate-400">Chưa có lịch sử biến động nào</td>
+              </tr>
+            ) : (
+              filteredTransactions.map((t) => {
+                const isImport = t.type === 'IMPORT'
+                const formattedDate = new Date(t.created_at).toLocaleString('vi-VN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
+
+                return (
+                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-4 text-xs text-slate-500 whitespace-nowrap">{formattedDate}</td>
+                    <td className="p-4 whitespace-nowrap">
+                      {isImport ? (
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold">
+                          <ArrowDownLeft className="w-3.5 h-3.5" /> NHẬP KHO
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-semibold">
+                          <ArrowUpRight className="w-3.5 h-3.5" /> XUẤT KHO
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className="font-semibold text-slate-900">{t.products?.name || t.product_id}</div>
+                      <div className="text-xs text-slate-400 font-mono">{t.product_id}</div>
+                    </td>
+                    <td className={`p-4 text-right font-bold font-mono whitespace-nowrap ${isImport ? 'text-emerald-600' : 'text-blue-600'}`}>
+                      {isImport ? `+${t.quantity}` : `${t.quantity}`} {t.products?.base_unit || 'Cơ sở'}
+                    </td>
+                    <td className="p-4 font-mono text-xs font-semibold text-slate-700 whitespace-nowrap">
+                      {t.reference_id || '-'}
+                    </td>
+                    <td className="p-4 text-xs text-slate-500 max-w-[250px] truncate">
+                      {t.notes || '-'}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/reports/components/ReportMetricCards.tsx">
+'use client'
+
+import { Package, AlertTriangle, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { Product } from '@/types/database'
+
+interface ReportMetricCardsProps {
+  products: Product[]
+  totalImportCount: number
+  totalExportCount: number
+}
+
+export default function ReportMetricCards({
+  products,
+  totalImportCount,
+  totalExportCount,
+}: ReportMetricCardsProps) {
+  const totalProductsCount = products.length
+  const lowStockProducts = products.filter((p) => p.stock_quantity <= p.min_stock_alert)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-1">
+              Tổng Mặt Hàng
+            </span>
+            <span className="text-2xl font-bold text-slate-900">{totalProductsCount}</span>
+            <span className="text-xs text-slate-500 block mt-1">Đang quản lý trong kho</span>
+          </div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <Package className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-1">
+              Cảnh Báo Tồn Kho
+            </span>
+            <span className={`text-2xl font-bold ${lowStockProducts.length > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+              {lowStockProducts.length}
+            </span>
+            <span className="text-xs text-slate-500 block mt-1">Sản phẩm dưới mức cảnh báo</span>
+          </div>
+          <div className={`p-3 rounded-xl ${lowStockProducts.length > 0 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-1">
+              Tổng Phiếu Nhập
+            </span>
+            <span className="text-2xl font-bold text-emerald-600">{totalImportCount}</span>
+            <span className="text-xs text-slate-500 block mt-1">Lượt bổ sung hàng</span>
+          </div>
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+            <ArrowDownLeft className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider block mb-1">
+              Tổng Đơn Xuất Kho
+            </span>
+            <span className="text-2xl font-bold text-blue-600">{totalExportCount}</span>
+            <span className="text-xs text-slate-500 block mt-1">Đơn bán sỉ đã giao</span>
+          </div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <ArrowUpRight className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {lowStockProducts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5 space-y-3">
+          <div className="flex items-center gap-2 text-red-800 font-bold text-sm">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            CẢNH BÁO: CÓ {lowStockProducts.length} SẢN PHẨM CẦN NHẬP BỔ SUNG NGAY
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {lowStockProducts.map((p) => (
+              <div key={p.id} className="bg-white p-3 rounded-lg border border-red-200 flex justify-between items-center text-xs">
+                <div>
+                  <p className="font-bold text-slate-900 truncate max-w-[200px]">{p.name}</p>
+                  <p className="text-slate-400 font-mono">{p.id}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-red-600 font-bold block">{p.stock_quantity} {p.base_unit}</span>
+                  <span className="text-slate-400 text-[10px]">Cảnh báo: ≤{p.min_stock_alert}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/admin/reports/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+import ReportMetricCards from './components/ReportMetricCards'
+import AuditTrailLogTable, { TransactionItem } from './components/AuditTrailLogTable'
+
+export default function ReportsAndAuditPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [transactions, setTransactions] = useState<TransactionItem[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'IMPORT' | 'EXPORT_ORDER' | 'ADJUSTMENT'>('ALL')
+
+  const fetchData = async () => {
+    setLoading(true)
+
+    const { data: prodData } = await supabase.from('products').select('*')
+    if (prodData) setProducts(prodData as Product[])
+
+    const { data: transData, error } = await supabase
+      .from('inventory_transactions')
+      .select('*, products(*)')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Lỗi fetch nhật ký kho:', error)
+    } else if (transData) {
+      setTransactions(transData as unknown as TransactionItem[])
+    }
+
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const totalImportCount = transactions.filter((t) => t.type === 'IMPORT').length
+  const totalExportCount = transactions.filter((t) => t.type === 'EXPORT_ORDER').length
+
+  return (
+    <main className="p-8 max-w-[1600px] mx-auto space-y-8">
+      <header className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Báo Cáo & Lịch Sử Biến Động Kho</h1>
+          <p className="text-sm text-slate-500">Theo dõi chi tiết luồng nhập xuất và cảnh báo tồn kho tự động</p>
+        </div>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+        >
+          Làm mới dữ liệu
+        </button>
+      </header>
+
+      <ReportMetricCards
+        products={products}
+        totalImportCount={totalImportCount}
+        totalExportCount={totalExportCount}
+      />
+
+      <AuditTrailLogTable
+        transactions={transactions}
+        loading={loading}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        totalImportCount={totalImportCount}
+        totalExportCount={totalExportCount}
+      />
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/settings/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Settings, User, Lock, CheckCircle2 } from 'lucide-react'
+
+export default function SettingsPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    async function loadUserData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setEmail(user.email || '')
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) {
+          setFullName(data.full_name)
+          setRole(data.role)
+        }
+      }
+    }
+    loadUserData()
+  }, [])
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // 1. Cập nhật Họ tên trong bảng profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName.trim() })
+        .eq('id', user.id)
+
+      if (profileError) throw profileError
+
+      // 2. Cập nhật mật khẩu mới nếu người dùng nhập
+      if (newPassword.trim()) {
+        const { error: passError } = await supabase.auth.updateUser({
+          password: newPassword.trim(),
+        })
+        if (passError) throw passError
+      }
+
+      alert('Đã cập nhật thông tin tài khoản thành công!')
+      setNewPassword('')
+    } catch (err: any) {
+      alert(`Lỗi cập nhật: ${err.message || 'Không thể lưu thông tin'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="p-8 max-w-2xl mx-auto space-y-6">
+      <header className="border-b pb-4">
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <Settings className="w-7 h-7 text-blue-600" /> Cài Đặt Tài Khoản Cá Nhân
+        </h1>
+        <p className="text-sm text-slate-500">Chỉnh sửa tên hiển thị và thay đổi mật khẩu đăng nhập của bạn</p>
+      </header>
+
+      <form onSubmit={handleUpdateProfile} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Email đăng nhập (Không thể thay đổi):</label>
+          <input
+            type="email"
+            disabled
+            value={email}
+            className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-500 font-mono cursor-not-allowed"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Cấp vai trò (Role):</label>
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            {role === 'OWNER' ? 'GIÁM ĐỐC (OWNER)' : role === 'ADMIN' ? 'QUẢN LÝ KHO (ADMIN)' : 'NHÂN VIÊN SALE / POS'}
+          </span>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Họ và Tên hiển thị:</label>
+          <div className="relative">
+            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Đổi Mật Khẩu Mới (Để trống nếu không muốn đổi):</label>
+          <div className="relative">
+            <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all text-xs cursor-pointer shadow-md disabled:bg-slate-300"
+        >
+          {isSubmitting ? 'ĐANG LƯU...' : 'LƯU THAY ĐỔI CÁ NHÂN'}
+        </button>
+      </form>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/admin/staff/components/CreateStaffModal.tsx">
+
+</file>
+
+<file path="src/app/admin/staff/components/StaffTable.tsx">
+
+</file>
+
+<file path="src/app/admin/staff/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Profile, UserRole } from '@/types/database'
+import { UserPlus, Shield, Trash2 } from 'lucide-react'
+
+export default function StaffManagementPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null)
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<UserRole>('STAFF')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const fetchProfiles = async () => {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: myProf } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      if (myProf) setCurrentUserProfile(myProf)
+    }
+
+    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+    if (!error) setProfiles(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchProfiles()
+  }, [])
+
+  const handleCreateStaff = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!fullName || !email || !password) return alert('Vui lòng điền đầy đủ thông tin!')
+
+    setIsSubmitting(true)
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { full_name: fullName.trim(), role },
+        },
+      })
+
+      if (authError) throw authError
+
+      if (authData.user) {
+        await supabase.from('profiles').insert({
+          id: authData.user.id,
+          full_name: fullName.trim(),
+          email: email.trim(),
+          role: role,
+        })
+      }
+
+      alert(`Khởi tạo tài khoản ${email} thành công!`)
+      setFullName('')
+      setEmail('')
+      setPassword('')
+      setRole('STAFF')
+      fetchProfiles()
+    } catch (err: any) {
+      alert(`Lỗi tạo tài khoản: ${err.message || 'Không thể khởi tạo'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteStaff = async (staffId: string, staffName: string) => {
+    if (currentUserProfile?.role !== 'OWNER') {
+      return alert('Chỉ có Giám đốc (OWNER) mới có quyền xóa tài khoản nhân sự!')
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa nhân viên ${staffName}?`)) return
+
+    try {
+      await supabase.from('profiles').delete().eq('id', staffId)
+      alert(`Đã xóa tài khoản ${staffName}!`)
+      fetchProfiles()
+    } catch (err: any) {
+      alert(`Không thể xóa: ${err.message}`)
+    }
+  }
+
+  // Chặn nếu SALE/POS cố tình vào trang nhân sự
+  if (currentUserProfile && currentUserProfile.role === 'STAFF') {
+    return (
+      <main className="p-12 text-center space-y-4">
+        <div className="text-red-500 font-bold text-lg">TRUY CẬP BỊ TỪ CHỐI</div>
+        <p className="text-xs text-slate-500">Tài khoản Nhân viên Sale/POS không có quyền vào quản lý nhân sự.</p>
+      </main>
+    )
+  }
+
+  return (
+    <main className="p-8 max-w-[1600px] mx-auto space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <Shield className="w-7 h-7 text-blue-600" /> Quản Lý Nhân Sự & Phân Quyền
+        </h1>
+        <p className="text-sm text-slate-500">
+          Phân cấp 3 tầng: OWNER (Giám đốc) &gt; ADMIN KHO (Quản lý) &gt; SALE/POS (Nhân viên)
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 font-bold text-slate-900 text-sm">
+            Danh Sách Nhân Sự ({profiles.length})
+          </div>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
+                <th className="p-4">Họ & Tên</th>
+                <th className="p-4">Email</th>
+                <th className="p-4 text-center">Vai Trò</th>
+                {currentUserProfile?.role === 'OWNER' && <th className="p-4 text-center">Thao Tác</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="p-8 text-center text-slate-400">Đang tải...</td>
+                </tr>
+              ) : profiles.map((p) => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="p-4 font-bold text-slate-900">{p.full_name}</td>
+                  <td className="p-4 font-mono text-slate-500">{p.email}</td>
+                  <td className="p-4 text-center">
+                    {p.role === 'OWNER' && (
+                      <span className="bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-bold">
+                        OWNER
+                      </span>
+                    )}
+                    {p.role === 'ADMIN' && (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full font-bold">
+                        ADMIN KHO
+                      </span>
+                    )}
+                    {p.role === 'STAFF' && (
+                      <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-full font-semibold">
+                        NV SALE / POS
+                      </span>
+                    )}
+                  </td>
+                  {currentUserProfile?.role === 'OWNER' && (
+                    <td className="p-4 text-center">
+                      {p.role !== 'OWNER' && (
+                        <button
+                          onClick={() => handleDeleteStaff(p.id, p.full_name)}
+                          className="text-slate-300 hover:text-red-600 p-1 transition-colors cursor-pointer"
+                          title="Xóa tài khoản nhân viên này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2 border-b pb-3">
+            <UserPlus className="w-5 h-5 text-blue-600" /> Cấp Tài Khoản Nhân Sự Mới
+          </h2>
+
+          <form onSubmit={handleCreateStaff} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Họ tên nhân viên:</label>
+              <input
+                type="text"
+                required
+                placeholder="Nguyễn Văn A"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Email đăng nhập:</label>
+              <input
+                type="email"
+                required
+                placeholder="staff@fb-b2b.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu khởi tạo:</label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Cấp vai trò (Role):</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="STAFF">NHÂN VIÊN SALE / POS (Chỉ tạo đơn bán sỉ)</option>
+                <option value="ADMIN">ADMIN KHO (Xem đơn, Nhập kho & Báo cáo)</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all text-xs cursor-pointer shadow-md disabled:bg-slate-300"
+            >
+              {isSubmitting ? 'ĐANG CẤP TÀI KHOẢN...' : 'XÁC NHẬN CẤP TÀI KHOẢN'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/cart/components/CartItemList.tsx">
+'use client'
+
+import { Trash2, Plus, Minus, Package } from 'lucide-react'
+import { CartItem } from '../page'
+
+interface CartItemListProps {
+  cart: CartItem[]
+  onUpdateQuantity: (cartKey: string, delta: number) => void
+  onRemoveItem: (cartKey: string) => void
+}
+
+export default function CartItemList({
+  cart,
+  onUpdateQuantity,
+  onRemoveItem,
+}: CartItemListProps) {
+  if (cart.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-3">
+        <Package className="w-10 h-10 text-slate-300 mx-auto" />
+        <p className="text-xs text-slate-400">Không có mặt hàng nào trong danh sách</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+      <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b pb-3">
+        1. Danh Sách Nguyên Liệu Chọn Đặt ({cart.length} mặt hàng)
+      </h2>
+
+      <div className="divide-y divide-slate-100 space-y-3">
+        {cart.map((item) => {
+          const cartKey = `${item.product.id}-${item.selectedUnit}`
+          const itemTotal = item.unitPrice * item.quantity
+
+          return (
+            <div key={cartKey} className="pt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
+                  {item.product.id}
+                </span>
+                <h3 className="font-bold text-slate-900 text-sm mt-1">{item.product.name}</h3>
+                <p className="text-xs text-emerald-600 font-semibold mt-0.5">
+                  {Math.round(item.unitPrice).toLocaleString('vi-VN')} đ / <span className="text-blue-600 font-bold">{item.selectedUnit}</span>
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between w-full sm:w-auto gap-6">
+                <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateQuantity(cartKey, -1)}
+                    className="p-1 hover:bg-white rounded-lg text-slate-600 cursor-pointer shadow-xs"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="font-bold text-xs w-8 text-center">{item.quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateQuantity(cartKey, 1)}
+                    className="p-1 hover:bg-white rounded-lg text-slate-600 cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-bold text-slate-900 text-sm">
+                    {Math.round(itemTotal).toLocaleString('vi-VN')} đ
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onRemoveItem(cartKey)}
+                  className="text-slate-300 hover:text-red-600 p-1 transition-colors cursor-pointer"
+                  title="Xóa món này"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/cart/components/CheckoutForm.tsx">
+'use client'
+
+import { Send, ShieldCheck } from 'lucide-react'
+
+interface CheckoutFormProps {
+  customerName: string
+  setCustomerName: (v: string) => void
+  storeName: string
+  setStoreName: (v: string) => void
+  customerPhone: string
+  setCustomerPhone: (v: string) => void
+  customerAddress: string
+  setCustomerAddress: (v: string) => void
+  notes: string
+  setNotes: (v: string) => void
+  totalAmount: number
+  itemCount: number
+  isSubmitting: boolean
+  onSubmit: (e: React.FormEvent) => void
+}
+
+export default function CheckoutForm({
+  customerName,
+  setCustomerName,
+  storeName,
+  setStoreName,
+  customerPhone,
+  setCustomerPhone,
+  customerAddress,
+  setCustomerAddress,
+  notes,
+  setNotes,
+  totalAmount,
+  itemCount,
+  isSubmitting,
+  onSubmit,
+}: CheckoutFormProps) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6 sticky top-20">
+      <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b pb-3">
+        2. Thông Tin Chủ Quán & Giao Hàng
+      </h2>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Họ tên người đặt / Chủ quán <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="Ví dụ: Nguyễn Văn A"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Tên Quán / Thương hiệu (Nếu có)
+          </label>
+          <input
+            type="text"
+            placeholder="Ví dụ: Trà Sữa Mixue Cầu Giấy"
+            value={storeName}
+            onChange={(e) => setStoreName(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Số điện thoại Zalo nhận xác nhận <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            required
+            placeholder="0912345678"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Địa chỉ nhận hàng chi tiết <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="Số nhà, đường, phường/xã, quận/huyện..."
+            value={customerAddress}
+            onChange={(e) => setCustomerAddress(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">
+            Ghi chú đợt giao
+          </label>
+          <textarea
+            rows={2}
+            placeholder="Giao giờ hành chính, gọi trước khi giao..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
+
+        <div className="bg-blue-50/70 border border-blue-100 p-4 rounded-xl space-y-2">
+          <div className="flex justify-between items-center text-xs text-slate-600">
+            <span>Tạm tính ({itemCount} món):</span>
+            <span>{Math.round(totalAmount).toLocaleString('vi-VN')} đ</span>
+          </div>
+          <div className="flex justify-between items-center text-xs text-slate-600">
+            <span>Phí vận chuyển:</span>
+            <span className="text-emerald-600 font-semibold">Thỏa thuận qua Zalo</span>
+          </div>
+          <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+            <span className="font-bold text-slate-900 text-sm">Tổng cộng:</span>
+            <span className="text-xl font-bold text-blue-600">
+              {Math.round(totalAmount).toLocaleString('vi-VN')} đ
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting || itemCount === 0}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:bg-slate-300"
+        >
+          <Send className="w-4 h-4" />
+          {isSubmitting ? 'ĐANG KHỞI TẠO ĐƠN HÀNG...' : 'XÁC NHẬN CHỐT ĐƠN QUA ZALO'}
+        </button>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 pt-1">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Bảo mật thông tin đơn hàng B2B tuyệt đối</span>
+        </div>
+      </form>
+    </div>
+  )
+}
+</file>
+
+<file path="src/app/cart/components/OrderSummaryCard.tsx">
+
+</file>
+
+<file path="src/app/cart/page.tsx">
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ShoppingBag, ArrowLeft, Trash2, CheckCircle2, Copy, Download, MessageSquare, ExternalLink, ShieldCheck } from 'lucide-react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+import CartItemList from './components/CartItemList'
+import CheckoutForm from './components/CheckoutForm'
+
+export interface CartItem {
+  product: Product
+  selectedUnit: string
+  quantity: number
+  unitPrice: number
+}
+
+export default function CartPage() {
+  const router = useRouter()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [customerName, setCustomerName] = useState('')
+  const [storeName, setStoreName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
+  const [notes, setNotes] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // State cho Modal Thành Công
+  const [successOrder, setSuccessOrder] = useState<{
+    orderCode: string
+    totalAmount: number
+    messageText: string
+    zaloUrl: string
+  } | null>(null)
+  
+  const [isCopied, setIsCopied] = useState(false)
+
+  // Đọc thông tin khách hàng từ localStorage để tự động điền lại
+  useEffect(() => {
+    const savedCart = localStorage.getItem('b2b_cart')
+    if (savedCart) {
+      try { setCart(JSON.parse(savedCart)) } catch (e) {}
+    }
+
+    const savedInfo = localStorage.getItem('b2b_customer_info')
+    if (savedInfo) {
+      try {
+        const info = JSON.parse(savedInfo)
+        setCustomerName(info.customerName || '')
+        setStoreName(info.storeName || '')
+        setCustomerPhone(info.customerPhone || '')
+        setCustomerAddress(info.customerAddress || '')
+      } catch (e) {}
+    }
+  }, [])
+
+  const updateCart = (newCart: CartItem[]) => {
+    setCart(newCart)
+    localStorage.setItem('b2b_cart', JSON.stringify(newCart))
+  }
+
+  const handleUpdateQuantity = (cartKey: string, delta: number) => {
+    const updated = cart
+      .map((item) => {
+        if (`${item.product.id}-${item.selectedUnit}` === cartKey) {
+          const newQty = item.quantity + delta
+          return newQty > 0 ? { ...item, quantity: newQty } : null
+        }
+        return item
+      })
+      .filter(Boolean) as CartItem[]
+
+    updateCart(updated)
+  }
+
+  const handleRemoveItem = (cartKey: string) => {
+    updateCart(cart.filter((item) => `${item.product.id}-${item.selectedUnit}` !== cartKey))
+  }
+
+  const handleClearCart = () => {
+    setCart([])
+    localStorage.removeItem('b2b_cart')
+  }
+
+  const totalAmount = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+
+  // HÀM TẠO NỘI DUNG VĂN BẢN ĐƠN HÀNG
+  const generateOrderMessage = (orderCode: string) => {
+    const itemList = cart
+      .map((i) => `• ${i.product.name}: ${i.quantity} ${i.selectedUnit} x ${Math.round(i.unitPrice).toLocaleString('vi-VN')}đ`)
+      .join('\n')
+
+    return `🛒 [ĐƠN ĐẶT HÀNG MỚI - MÃ: ${orderCode}]
+👤 Khách hàng/Chủ quán: ${customerName}${storeName ? ` (${storeName})` : ''}
+📞 SĐT Zalo: ${customerPhone}
+📍 Địa chỉ giao hàng: ${customerAddress}
+${notes ? `📝 Ghi chú: ${notes}\n` : ''}
+📋 DANH SÁCH SẢN PHẨM:
+${itemList}
+
+💰 TỔNG THÀNH TIỀN: ${Math.round(totalAmount).toLocaleString('vi-VN')} VNĐ
+---
+Nhờ Shop xác nhận và soạn hàng giúp tôi!`
+  }
+
+  // XỬ LÝ CHỐT ĐƠN HÀNG
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (cart.length === 0) return alert('Giỏ hàng của bạn đang trống!')
+    if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
+      return alert('Vui lòng điền đầy đủ Họ tên, SĐT Zalo và Địa chỉ giao hàng!')
+    }
+
+    setIsSubmitting(true)
+    try {
+      // Lưu thông tin khách để lần sau tự điền
+      localStorage.setItem('b2b_customer_info', JSON.stringify({
+        customerName, storeName, customerPhone, customerAddress
+      }))
+
+      const now = new Date()
+      const orderCode = `ORD-${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`
+
+      // 1. Lưu vào Database
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_code: orderCode,
+          customer_name: customerName.trim(),
+          store_name: storeName.trim() || null,
+          customer_phone: customerPhone.trim(),
+          customer_address: customerAddress.trim(),
+          total_amount: totalAmount,
+          status: 'PENDING',
+          notes: notes.trim() || 'Đơn hàng từ Trang Giỏ Hàng B2B',
+        })
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      for (const item of cart) {
+        await supabase.from('order_items').insert({
+          order_id: orderData.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          subtotal: item.unitPrice * item.quantity,
+        })
+      }
+
+      // 2. Tạo nội dung văn bản & Link Zalo
+      const messageText = generateOrderMessage(orderCode)
+      const zaloUrl = `https://zalo.me/0989830347`
+
+      // 3. Tự động Copy nội dung đơn hàng vào Clipboard
+      try {
+        await navigator.clipboard.writeText(messageText)
+        setIsCopied(true)
+      } catch (err) {
+        console.error('Lỗi auto copy:', err)
+      }
+
+      // 4. Hiển thị Popup Đơn hàng Thành công
+      setSuccessOrder({
+        orderCode,
+        totalAmount,
+        messageText,
+        zaloUrl,
+      })
+
+      handleClearCart()
+    } catch (err: any) {
+      alert(`Không thể khởi tạo đơn hàng: ${err.message || 'Lỗi kết nối'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // HÀM XUẤT HÓA ĐƠN DẠNG FILE FILE TEXT / HOẶC IN HÓA ĐƠN
+  const handleDownloadInvoice = () => {
+    if (!successOrder) return
+    const element = document.createElement('a')
+    const file = new Blob([successOrder.messageText], { type: 'text/plain;charset=utf-8' })
+    element.href = URL.createObjectURL(file)
+    element.download = `HoaDon_${successOrder.orderCode}.txt`
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
+  const handleCopyText = () => {
+    if (!successOrder) return
+    navigator.clipboard.writeText(successOrder.messageText)
+    setIsCopied(true)
+    setTimeout(() => setIsCopied(false), 2000)
+  }
+
+  return (
+    <main className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-blue-600 mb-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Tiếp tục xem sản phẩm
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <ShoppingBag className="w-7 h-7 text-blue-600" /> Giỏ Hàng Đặt Sỉ B2B
+          </h1>
+        </div>
+        {cart.length > 0 && (
+          <button
+            onClick={handleClearCart}
+            className="text-xs text-red-600 hover:text-red-800 font-semibold flex items-center gap-1 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Xóa tất cả
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-7">
+          <CartItemList
+            cart={cart}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+          />
+        </div>
+
+        <div className="lg:col-span-5">
+          <CheckoutForm
+            customerName={customerName}
+            setCustomerName={setCustomerName}
+            storeName={storeName}
+            setStoreName={setStoreName}
+            customerPhone={customerPhone}
+            setCustomerPhone={setCustomerPhone}
+            customerAddress={customerAddress}
+            setCustomerAddress={setCustomerAddress}
+            notes={notes}
+            setNotes={setNotes}
+            totalAmount={totalAmount}
+            itemCount={cart.length}
+            isSubmitting={isSubmitting}
+            onSubmit={handleCheckout}
+          />
+        </div>
+      </div>
+
+      {/* POPUP XÁC NHẬN ĐƠN HÀNG THÀNH CÔNG & CHUYỂN ZALO */}
+      {successOrder && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Khởi Tạo Đơn Hàng Thành Công!</h2>
+              <p className="text-xs text-slate-500 font-mono">Mã đơn: <strong className="text-blue-600">{successOrder.orderCode}</strong></p>
+            </div>
+
+            {/* KHU VỰC HIỂN THỊ NỘI DUNG ĐƠN DẠNG HÓA ĐƠN */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono whitespace-pre-wrap text-slate-700 max-h-48 overflow-y-auto leading-relaxed">
+              {successOrder.messageText}
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 space-y-1">
+              <p className="font-bold flex items-center gap-1">
+                💡 BƯỚC CÒN LẠI ĐỂ CHỐT ĐƠN:
+              </p>
+              <p>Nội dung đơn hàng đã được <strong>tự động sao chép</strong>. Bạn hãy bấm nút bên dưới để mở Zalo Shop và bấm <strong>Dán (Ctrl + V)</strong> gửi tin nhắn nhé!</p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <a
+                href={successOrder.zaloUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                MỞ ZALO CHÁT VỚI SHOP NGAY
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </a>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyText}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  {isCopied ? 'Đã Sao Chép!' : 'Sao Chép Lại'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadInvoice}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Tải Phiếu Đơn (.txt)
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setSuccessOrder(null)
+                router.push('/')
+              }}
+              className="w-full text-center text-xs text-slate-400 hover:text-slate-600 font-semibold pt-2 block"
+            >
+              Về Trang Chủ Danh Mục
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/login/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
+import { User, Lock, Mail, Phone, MapPin, Store, LogOut, CheckCircle2, ArrowRight } from 'lucide-react'
+
+export default function CustomerLoginPage() {
+  const router = useRouter()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [isRegister, setIsRegister] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Form states
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [storeName, setStoreName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+
+  useEffect(() => {
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setCurrentUser(user)
+        const savedInfo = localStorage.getItem('b2b_customer_info')
+        if (savedInfo) {
+          try {
+            const info = JSON.parse(savedInfo)
+            setFullName(info.customerName || '')
+            setStoreName(info.storeName || '')
+            setPhone(info.customerPhone || '')
+            setAddress(info.customerAddress || '')
+          } catch (e) {}
+        }
+      }
+    }
+    checkUser()
+  }, [])
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      if (isRegister) {
+        // ĐĂNG KÝ KHÁCH HÀNG MỚI
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { full_name: fullName.trim(), store_name: storeName.trim(), phone, address }
+          }
+        })
+        if (error) throw error
+
+        // Lưu địa chỉ giao hàng sẵn cho các đợt tạo đơn sau
+        localStorage.setItem('b2b_customer_info', JSON.stringify({
+          customerName: fullName.trim(),
+          storeName: storeName.trim(),
+          customerPhone: phone.trim(),
+          customerAddress: address.trim()
+        }))
+
+        alert('Đăng ký tài khoản sỉ thành công!')
+        router.push('/')
+      } else {
+        // ĐĂNG NHẬP
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+        if (error) throw error
+
+        alert('Đăng nhập thành công! Hệ thống đã đồng bộ giỏ hàng của bạn.')
+        router.push('/')
+      }
+    } catch (err: any) {
+      alert(`Lỗi xác thực: ${err.message || 'Không thể thao tác'}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveDefaultInfo = (e: React.FormEvent) => {
+    e.preventDefault()
+    localStorage.setItem('b2b_customer_info', JSON.stringify({
+      customerName: fullName.trim(),
+      storeName: storeName.trim(),
+      customerPhone: phone.trim(),
+      customerAddress: address.trim()
+    }))
+    alert('Đã lưu thông tin quán & địa chỉ giao hàng mặc định!')
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setCurrentUser(null)
+    router.refresh()
+  }
+
+  // NẾU ĐÃ ĐĂNG NHẬP -> HIỂN THỊ THÔNG TIN TÀI KHOẢN CỦA KHÁCH
+  if (currentUser) {
+    return (
+      <main className="p-4 md:p-8 max-w-2xl mx-auto space-y-6 bg-slate-50 min-h-[80vh]">
+        <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-2xs space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 font-bold rounded-2xl flex items-center justify-center text-lg">
+                <User className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="font-bold text-slate-900 text-base">Tài Khoản Khách Hàng B2B</h1>
+                <p className="text-xs text-slate-400 font-mono">{currentUser.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <LogOut className="w-4 h-4" /> Thoát
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveDefaultInfo} className="space-y-4">
+            <h2 className="font-bold text-xs uppercase text-slate-700 tracking-wider">Cài Đặt Địa Chỉ Giao Hàng Mặc Định</h2>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Tên Chủ Quán / Người Đặt:</label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Tên Quán / Thương Hiệu:</label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Trà Sữa Mixue"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Số Điện Thoại Zalo Nhận Đơn:</label>
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Địa Chỉ Nhận Hàng Chi Tiết:</label>
+              <textarea
+                rows={2}
+                required
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 resize-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer"
+            >
+              LƯU THÔNG TIN GIAO HÀNG MẶC ĐỊNH
+            </button>
+          </form>
+        </div>
+      </main>
+    )
+  }
+
+  // NẾU CHƯA ĐĂNG NHẬP -> FORM ĐĂNG NHẬP / ĐĂNG KÝ KHÁCH MUA SỈ
+  return (
+    <main className="min-h-[80vh] flex items-center justify-center p-4 bg-slate-50">
+      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex bg-emerald-600 p-3.5 rounded-2xl text-white mb-1 shadow-md">
+            <Store className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-black text-slate-900">
+            {isRegister ? 'Đăng Ký Tài Khoản Khách Sỉ' : 'Đăng Nhập Khách Hàng B2B'}
+          </h1>
+          <p className="text-xs text-slate-400">Tự động đồng bộ giỏ hàng và lưu địa chỉ nhận sỉ ưu đãi</p>
+        </div>
+
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isRegister && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Tên Chủ Quán / Người Đặt:</label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nguyễn Văn A"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Tên Quán / Thương Hiệu F&B:</label>
+                <div className="relative">
+                  <Store className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Cafe Trà Sữa Đô Thành"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Số Điện Thoại Zalo:</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="0912345678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Địa Chỉ Nhận Hàng Mặc Định:</label>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="Số nhà, đường, quận/huyện..."
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Email Đăng Nhập:</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                required
+                placeholder="khachhang@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mật Khẩu:</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all text-xs cursor-pointer shadow-md disabled:bg-slate-300 flex items-center justify-center gap-2"
+          >
+            <span>{loading ? 'ĐANG XỬ LÝ...' : isRegister ? 'ĐĂNG KÝ TÀI KHOẢN MỚI' : 'ĐĂNG NHẬP KHÁCH HÀNG'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <div className="text-center pt-2">
+          <button
+            type="button"
+            onClick={() => setIsRegister(!isRegister)}
+            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+          >
+            {isRegister ? 'Đã có tài khoản? Đăng nhập ngay' : 'Chưa có tài khoản? Đăng ký tại đây'}
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/products/[id]/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+import { ShoppingBag, ArrowLeft, ShieldCheck, Truck, Package, Plus, Minus, Check, Eye, PackageCheck } from 'lucide-react'
+
+export default function ProductDetailPage() {
+  const params = useParams()
+  const productId = params.id as string
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [product, setProduct] = useState<Product | null>(null)
+  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([])
+  const [selectedUnitType, setSelectedUnitType] = useState<'UNIT' | 'BASE'>('UNIT')
+  const [quantity, setQuantity] = useState(1)
+  const [isAdded, setIsAdded] = useState(false)
+
+  useEffect(() => {
+    async function fetchProduct() {
+      const { data } = await supabase.from('products').select('*').eq('id', productId).single()
+      if (data) {
+        setProduct(data)
+
+        // Ghi nhận sản phẩm vào danh sách Đã Xem Gần Đây (Recently Viewed)
+        const savedRecent = localStorage.getItem('b2b_recently_viewed')
+        let recentList: Product[] = []
+        if (savedRecent) {
+          try { recentList = JSON.parse(savedRecent) } catch (e) {}
+        }
+        const filtered = recentList.filter((p) => p.id !== data.id)
+        const updatedRecent = [data, ...filtered].slice(0, 6)
+        setRecentlyViewed(updatedRecent)
+        localStorage.setItem('b2b_recently_viewed', JSON.stringify(updatedRecent))
+      }
+    }
+    if (productId) fetchProduct()
+  }, [productId])
+
+  if (!product) {
+    return (
+      <main className="p-12 text-center text-slate-400 text-xs">
+        Đang tải thông tin nguyên liệu...
+      </main>
+    )
+  }
+
+  const isBase = selectedUnitType === 'BASE'
+  const currentUnitName = isBase ? product.base_unit : product.unit
+  const currentUnitPrice = isBase ? Number(product.price) / product.conversion_rate : Number(product.price)
+  const totalPrice = currentUnitPrice * quantity
+
+  const handleAddToCart = () => {
+    const cartKey = `${product.id}-${currentUnitName}`
+    const savedCart = localStorage.getItem('b2b_cart')
+    let currentCart: any[] = []
+    if (savedCart) {
+      try { currentCart = JSON.parse(savedCart) } catch (e) {}
+    }
+
+    const existingIndex = currentCart.findIndex((i) => `${i.product.id}-${i.selectedUnit}` === cartKey)
+    if (existingIndex > -1) {
+      currentCart[existingIndex].quantity += quantity
+    } else {
+      currentCart.push({ product, selectedUnit: currentUnitName, quantity, unitPrice: currentUnitPrice })
+    }
+
+    localStorage.setItem('b2b_cart', JSON.stringify(currentCart))
+    window.dispatchEvent(new Event('storage'))
+
+    setIsAdded(true)
+    setTimeout(() => setIsAdded(false), 1500)
+  }
+
+  return (
+    <main className="p-4 md:p-8 max-w-[1200px] mx-auto space-y-8 bg-slate-50 min-h-screen">
+      <Link href="/products" className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách sản phẩm
+      </Link>
+
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="md:col-span-5 bg-slate-100 rounded-2xl h-80 flex items-center justify-center p-8">
+          <Package className="w-24 h-24 text-slate-300" />
+        </div>
+
+        <div className="md:col-span-7 space-y-6">
+          <div>
+            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block mb-1">
+              NGUYÊN LIỆU PHẠM VI B2B
+            </span>
+            <h1 className="text-2xl font-black text-slate-900">{product.name}</h1>
+            <p className="text-xs text-slate-400 mt-1">Tỷ lệ quy đổi: 1 {product.unit} = {product.conversion_rate} {product.base_unit}</p>
+          </div>
+
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+            <span className="text-xs font-bold text-slate-700 block">Chọn quy cách đặt hàng:</span>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedUnitType('UNIT')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  !isBase ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 font-bold' : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                <span className="text-xs block font-semibold">MUA SỈ ({product.unit})</span>
+                <strong className="text-sm text-emerald-600 block mt-1">{Number(product.price).toLocaleString('vi-VN')} đ</strong>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedUnitType('BASE')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  isBase ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 font-bold' : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                <span className="text-xs block font-semibold">MUA LẺ ({product.base_unit})</span>
+                <strong className="text-sm text-emerald-600 block mt-1">{Math.round(Number(product.price) / product.conversion_rate).toLocaleString('vi-VN')} đ</strong>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="flex items-center border border-slate-200 rounded-xl bg-slate-50 p-1">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-white rounded-lg text-slate-600 cursor-pointer">
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="font-bold text-sm w-12 text-center">{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)} className="p-2 hover:bg-white rounded-lg text-slate-600 cursor-pointer">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-right flex-1">
+              <span className="text-xs text-slate-400 block">Thành tiền tạm tính:</span>
+              <span className="text-xl font-black text-emerald-600">{Math.round(totalPrice).toLocaleString('vi-VN')} đ</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleAddToCart}
+            className={`w-full py-4 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
+              isAdded ? 'bg-emerald-600 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            }`}
+          >
+            {isAdded ? <Check className="w-5 h-5" /> : <ShoppingBag className="w-5 h-5" />}
+            <span>{isAdded ? 'ĐÃ THÊM VÀO GIỎ HÀNG!' : 'THÊM VÀO GIỎ HÀNG B2B'}</span>
+          </button>
+
+          <div className="grid grid-cols-2 gap-4 pt-2 text-xs text-slate-500 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" /> Cam kết hàng chính hãng 100%
+            </div>
+            <div className="flex items-center gap-2">
+              <Truck className="w-4 h-4 text-blue-500" /> Giao hàng nhanh toàn quốc
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 👁️ MỤC SẢN PHẨM ĐÃ XEM GẦN ĐÂY */}
+      {recentlyViewed.length > 1 && (
+        <section className="pt-8 border-t border-slate-200 space-y-4">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wider">
+            <Eye className="w-4 h-4 text-emerald-600" /> Nguyên Liệu Bạn Đã Xem Gần Đây
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {recentlyViewed.filter(p => p.id !== product.id).map((p) => (
+              <Link key={p.id} href={`/products/${p.id}`} className="bg-white p-3 rounded-2xl border border-slate-200 text-xs space-y-1.5 hover:border-emerald-500 transition-colors block">
+                <div className="w-full h-20 bg-slate-50 rounded-xl flex items-center justify-center">
+                  <PackageCheck className="w-6 h-6 text-slate-300" />
+                </div>
+                <p className="font-bold text-slate-900 truncate">{p.name}</p>
+                <p className="text-emerald-600 font-bold text-[11px]">{Number(p.price).toLocaleString('vi-VN')} đ / {p.unit}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/products/page.tsx">
+'use client'
+
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product, Category } from '@/types/database'
+import { Filter, ArrowUpDown, Heart, PackageCheck, ChevronRight, Home } from 'lucide-react'
+
+function ProductsContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // 🎯 LẤY TRỰC TIẾP TỪ URL - KHÔNG QUA STATE TĨNH
+  const selectedCategory = searchParams.get('category')
+  const searchTerm = searchParams.get('search') || ''
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name'>('default')
+  
+  const [wishlist, setWishlist] = useState<string[]>([])
+  const [addedItemKey, setAddedItemKey] = useState<string | null>(null)
+
+  // 1. Fetch dữ liệu sản phẩm & danh mục từ Database
+  useEffect(() => {
+    async function fetchData() {
+      const { data: catData } = await supabase.from('categories').select('*').order('display_order')
+      const { data: prodData } = await supabase.from('products').select('*')
+      if (catData) setCategories(catData)
+      if (prodData) setProducts(prodData)
+    }
+    fetchData()
+
+    const savedWishlist = localStorage.getItem('b2b_wishlist')
+    if (savedWishlist) {
+      try { setWishlist(JSON.parse(savedWishlist)) } catch (e) {}
+    }
+  }, [])
+
+  // 2. Hàm chuyển danh mục bằng cách push URL chuẩn Next.js
+  const handleSelectCategory = (catId: string | null) => {
+    if (catId) {
+      router.push(`/products?category=${catId}`)
+    } else {
+      router.push(`/products`)
+    }
+  }
+
+  const toggleWishlist = (productId: string) => {
+    let updated: string[]
+    if (wishlist.includes(productId)) {
+      updated = wishlist.filter((id) => id !== productId)
+    } else {
+      updated = [...wishlist, productId]
+    }
+    setWishlist(updated)
+    localStorage.setItem('b2b_wishlist', JSON.stringify(updated))
+  }
+
+  const addToCart = (product: Product, unitType: 'UNIT' | 'BASE') => {
+    const isBase = unitType === 'BASE'
+    const unitName = isBase ? product.base_unit : product.unit
+    const price = isBase ? Number(product.price) / product.conversion_rate : Number(product.price)
+    const cartKey = `${product.id}-${unitName}`
+
+    const savedCart = localStorage.getItem('b2b_cart')
+    let currentCart: any[] = []
+    if (savedCart) {
+      try { currentCart = JSON.parse(savedCart) } catch (e) {}
+    }
+
+    const existingIndex = currentCart.findIndex((i) => `${i.product.id}-${i.selectedUnit}` === cartKey)
+    if (existingIndex > -1) {
+      currentCart[existingIndex].quantity += 1
+    } else {
+      currentCart.push({ product, selectedUnit: unitName, quantity: 1, unitPrice: price })
+    }
+
+    localStorage.setItem('b2b_cart', JSON.stringify(currentCart))
+    window.dispatchEvent(new Event('storage'))
+
+    setAddedItemKey(cartKey)
+    setTimeout(() => setAddedItemKey(null), 1000)
+  }
+
+  // 3. Lọc danh sách sản phẩm động theo URL params
+  let filtered = products.filter((p) => {
+    const matchCat = selectedCategory ? p.category_id === selectedCategory : true
+    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchCat && matchSearch
+  })
+
+  if (sortBy === 'price-asc') {
+    filtered.sort((a, b) => Number(a.price) - Number(b.price))
+  } else if (sortBy === 'price-desc') {
+    filtered.sort((a, b) => Number(b.price) - Number(a.price))
+  } else if (sortBy === 'name') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return (
+    <main className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 bg-slate-50 min-h-screen">
+      <nav className="flex items-center gap-2 text-xs text-slate-500">
+        <Link href="/" className="hover:text-blue-600 flex items-center gap-1"><Home className="w-3.5 h-3.5" /> Trang chủ</Link>
+        <ChevronRight className="w-3 h-3 text-slate-300" />
+        <span className="font-bold text-slate-800">Danh Mục Nguyên Liệu</span>
+      </nav>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* BỘ LỌC BÊN TRÁI */}
+        <aside className="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6 sticky top-32">
+          <div className="flex items-center justify-between border-b pb-3">
+            <h2 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <Filter className="w-4 h-4 text-blue-600" /> BỘ LỌC SẢN PHẨM
+            </h2>
+            {selectedCategory && (
+              <button onClick={() => handleSelectCategory(null)} className="text-[11px] text-blue-600 hover:underline cursor-pointer">
+                Xóa lọc
+              </button>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase">DANH MỤC SẢN PHẨM</label>
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              <button
+                onClick={() => handleSelectCategory(null)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  !selectedCategory ? 'bg-blue-50 text-blue-600 font-bold' : 'hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                Tất cả ({products.length})
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleSelectCategory(cat.id)}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                    selectedCategory === cat.id ? 'bg-blue-50 text-blue-600 font-bold' : 'hover:bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* DANH SÁCH SẢN PHẨM PHẢI */}
+        <div className="lg:col-span-9 space-y-4">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs">
+            <span className="text-slate-500">
+              Hiển thị <strong className="text-slate-900">{filtered.length}</strong> nguyên liệu phù hợp
+            </span>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <ArrowUpDown className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-600 font-medium">Sắp xếp:</span>
+              <select
+                value={sortBy}
+                onChange={(e: any) => setSortBy(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 font-bold text-slate-800 focus:outline-none"
+              >
+                <option value="default">Mặc định</option>
+                <option value="price-asc">Giá: Thấp đến Cao</option>
+                <option value="price-desc">Giá: Cao đến Thấp</option>
+                <option value="name">Tên A - Z</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((p) => {
+              const basePrice = Number(p.price) / p.conversion_rate
+              const isLiked = wishlist.includes(p.id)
+
+              return (
+                <div key={p.id} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:border-blue-300 transition-all flex flex-col justify-between relative group">
+                  <button
+                    onClick={() => toggleWishlist(p.id)}
+                    className="absolute top-3 right-3 z-10 p-2 bg-white/80 rounded-full shadow-xs text-slate-400 hover:text-red-500 cursor-pointer"
+                  >
+                    <Heart className={`w-4 h-4 ${isLiked ? 'text-red-500 fill-red-500' : ''}`} />
+                  </button>
+
+                  <Link href={`/products/${p.id}`} className="block space-y-3">
+                    <div className="w-full h-40 bg-slate-50 rounded-xl flex items-center justify-center">
+                      <PackageCheck className="w-10 h-10 text-slate-300 group-hover:scale-110 transition-transform" />
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-blue-600 uppercase">F&B INGREDIENT</span>
+                      <h3 className="font-bold text-slate-900 text-sm line-clamp-2 mt-1 group-hover:text-blue-600">{p.name}</h3>
+                      <p className="text-[11px] text-slate-400 mt-1">Quy cách: 1 {p.unit} = {p.conversion_rate} {p.base_unit}</p>
+                    </div>
+                  </Link>
+
+                  <div className="border-t border-slate-100 pt-3 space-y-2 mt-4">
+                    <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block">Sỉ ({p.unit}):</span>
+                        <strong className="text-emerald-600 font-bold">{Number(p.price).toLocaleString('vi-VN')} đ</strong>
+                      </div>
+                      <button onClick={() => addToCart(p, 'UNIT')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                        + Sỉ
+                      </button>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                      <div>
+                        <span className="text-[10px] text-slate-500 block">Lẻ ({p.base_unit}):</span>
+                        <strong className="text-emerald-600 font-bold">{Math.round(basePrice).toLocaleString('vi-VN')} đ</strong>
+                      </div>
+                      <button onClick={() => addToCart(p, 'BASE')} className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                        + Lẻ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-400">Đang tải danh sách sản phẩm...</div>}>
+      <ProductsContent />
+    </Suspense>
+  )
+}
+</file>
+
+<file path="src/app/wishlist/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+import { Heart, PackageCheck, Plus, Check, ArrowLeft, Trash2 } from 'lucide-react'
+
+export default function WishlistPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([])
+  const [wishlistIds, setWishlistIds] = useState<string[]>([])
+  const [addedItemKey, setAddedItemKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    const savedWishlist = localStorage.getItem('b2b_wishlist')
+    if (savedWishlist) {
+      try {
+        const ids: string[] = JSON.parse(savedWishlist)
+        setWishlistIds(ids)
+        if (ids.length > 0) {
+          supabase.from('products').select('*').in('id', ids).then(({ data }) => {
+            if (data) setWishlistProducts(data)
+          })
+        }
+      } catch (e) {}
+    }
+  }, [])
+
+  const removeFromWishlist = (productId: string) => {
+    const updatedIds = wishlistIds.filter((id) => id !== productId)
+    setWishlistIds(updatedIds)
+    setWishlistProducts(wishlistProducts.filter((p) => p.id !== productId))
+    localStorage.setItem('b2b_wishlist', JSON.stringify(updatedIds))
+    window.dispatchEvent(new Event('storage'))
+  }
+
+  const addToCart = (product: Product, unitType: 'UNIT' | 'BASE') => {
+    const isBase = unitType === 'BASE'
+    const unitName = isBase ? product.base_unit : product.unit
+    const price = isBase ? Number(product.price) / product.conversion_rate : Number(product.price)
+    const cartKey = `${product.id}-${unitName}`
+
+    const savedCart = localStorage.getItem('b2b_cart')
+    let currentCart: any[] = []
+    if (savedCart) {
+      try { currentCart = JSON.parse(savedCart) } catch (e) {}
+    }
+
+    const existingIndex = currentCart.findIndex((i) => `${i.product.id}-${i.selectedUnit}` === cartKey)
+    if (existingIndex > -1) {
+      currentCart[existingIndex].quantity += 1
+    } else {
+      currentCart.push({ product, selectedUnit: unitName, quantity: 1, unitPrice: price })
+    }
+
+    localStorage.setItem('b2b_cart', JSON.stringify(currentCart))
+    window.dispatchEvent(new Event('storage'))
+
+    setAddedItemKey(cartKey)
+    setTimeout(() => setAddedItemKey(null), 1000)
+  }
+
+  return (
+    <main className="p-4 md:p-8 max-w-[1400px] mx-auto space-y-6 bg-slate-50 min-h-[80vh]">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <Link href="/products" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-emerald-600 mb-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Quay lại xem tất cả nguyên liệu
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Heart className="w-7 h-7 text-red-500 fill-red-500" /> Danh Sách Nguyên Liệu Yêu Thích
+          </h1>
+        </div>
+      </div>
+
+      {wishlistProducts.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4">
+          <Heart className="w-12 h-12 text-slate-300 mx-auto" />
+          <p className="text-xs text-slate-400">Bạn chưa thả tim nguyên liệu nào.</p>
+          <Link href="/products" className="inline-block bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md">
+            Khám phá danh mục ngay
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {wishlistProducts.map((p) => {
+            const basePrice = Number(p.price) / p.conversion_rate
+            return (
+              <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between relative group">
+                <button
+                  onClick={() => removeFromWishlist(p.id)}
+                  className="absolute top-3 right-3 z-10 p-2 bg-white/80 rounded-full shadow-xs text-slate-400 hover:text-red-600 cursor-pointer"
+                  title="Xóa khỏi danh sách yêu thích"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+
+                <Link href={`/products/${p.id}`} className="block space-y-3">
+                  <div className="w-full h-40 bg-slate-50 rounded-xl flex items-center justify-center">
+                    <PackageCheck className="w-10 h-10 text-slate-300" />
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase">F&B INGREDIENT</span>
+                    <h3 className="font-bold text-slate-900 text-sm line-clamp-2 mt-1">{p.name}</h3>
+                    <p className="text-[11px] text-slate-400 mt-1">Quy cách: 1 {p.unit} = {p.conversion_rate} {p.base_unit}</p>
+                  </div>
+                </Link>
+
+                <div className="border-t border-slate-100 pt-3 space-y-2 mt-4">
+                  <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Sỉ ({p.unit}):</span>
+                      <strong className="text-emerald-600 font-bold">{Number(p.price).toLocaleString('vi-VN')} đ</strong>
+                    </div>
+                    <button onClick={() => addToCart(p, 'UNIT')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                      + Sỉ
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Lẻ ({p.base_unit}):</span>
+                      <strong className="text-emerald-600 font-bold">{Math.round(basePrice).toLocaleString('vi-VN')} đ</strong>
+                    </div>
+                    <button onClick={() => addToCart(p, 'BASE')} className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                      + Lẻ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </main>
+  )
+}
+</file>
+
+<file path="src/app/globals.css">
+@import "tailwindcss";
+</file>
+
+<file path="src/app/layout.tsx">
+import type { Metadata } from 'next'
+import './globals.css'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+
+export const metadata: Metadata = {
+  title: 'Hệ Thống Quản Lý Kho & Bán Sỉ F&B',
+  description: 'Hệ thống quản lý bán sỉ B2B & tồn kho F&B',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="vi">
+      <body className="bg-slate-100 text-slate-900 min-h-screen antialiased flex flex-col">
+        {/* Header XXXLutz */}
+        <Navbar />
+
+        {/* Nội dung các trang */}
+        <div className="flex-1">
+          {children}
+        </div>
+
+        {/* Footer Doanh Nghiệp Chuyên Nghiệp */}
+        <Footer />
+      </body>
+    </html>
+  )
+}
+</file>
+
+<file path="src/app/page.tsx">
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product, Category } from '@/types/database'
+import { ArrowRight, ShieldCheck, Truck, Clock, Sparkles, PackageCheck, Plus, Check, Heart } from 'lucide-react'
+
+export default function HomePage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [categories, setCategories] = useState<Category[]>([])
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
+  const [wishlist, setWishlist] = useState<string[]>([])
+  const [addedItemKey, setAddedItemKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data: catData } = await supabase.from('categories').select('*').order('display_order')
+      const { data: prodData } = await supabase.from('products').select('*').limit(8)
+      if (catData) setCategories(catData)
+      if (prodData) setFeaturedProducts(prodData)
+    }
+    fetchData()
+
+    const savedWishlist = localStorage.getItem('b2b_wishlist')
+    if (savedWishlist) {
+      try { setWishlist(JSON.parse(savedWishlist)) } catch (e) {}
+    }
+  }, [])
+
+  const toggleWishlist = (productId: string) => {
+    let updated: string[]
+    if (wishlist.includes(productId)) {
+      updated = wishlist.filter((id) => id !== productId)
+    } else {
+      updated = [...wishlist, productId]
+    }
+    setWishlist(updated)
+    localStorage.setItem('b2b_wishlist', JSON.stringify(updated))
+  }
+
+  const addToCart = (product: Product, unitType: 'UNIT' | 'BASE') => {
+    const isBase = unitType === 'BASE'
+    const unitName = isBase ? product.base_unit : product.unit
+    const price = isBase ? Number(product.price) / product.conversion_rate : Number(product.price)
+    const cartKey = `${product.id}-${unitName}`
+
+    const savedCart = localStorage.getItem('b2b_cart')
+    let currentCart: any[] = []
+    if (savedCart) {
+      try { currentCart = JSON.parse(savedCart) } catch (e) {}
+    }
+
+    const existingIndex = currentCart.findIndex((i) => `${i.product.id}-${i.selectedUnit}` === cartKey)
+    if (existingIndex > -1) {
+      currentCart[existingIndex].quantity += 1
+    } else {
+      currentCart.push({ product, selectedUnit: unitName, quantity: 1, unitPrice: price })
+    }
+
+    localStorage.setItem('b2b_cart', JSON.stringify(currentCart))
+    window.dispatchEvent(new Event('storage'))
+
+    setAddedItemKey(cartKey)
+    setTimeout(() => setAddedItemKey(null), 1000)
+  }
+
+  return (
+    <main className="space-y-12 pb-16 bg-slate-50 min-h-screen">
+      {/* 1. HERO BANNER B2B */}
+      <section className="bg-slate-900 text-white py-16 px-6 relative overflow-hidden">
+        <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-7 space-y-6">
+            <span className="inline-flex items-center gap-2 bg-blue-600/30 border border-blue-500/30 text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" /> Giải Pháp Nguyên Liệu F&B Giá Sỉ
+            </span>
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+              TỔNG KHO PHÂN PHỐI NGUYÊN LIỆU PHA CHẾ B2B
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-xl">
+              Cung cấp nguyên liệu chính hãng giá sỉ tận gốc cho Chuỗi Trà Sữa, Cafe & Bánh Ngọt. Chốt đơn trực tiếp qua Zalo Doanh Nghiệp nhanh chóng.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <Link
+                href="/products"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
+              >
+                <span>XEM TẤT CẢ NGUYÊN LIỆU</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. CAM KẾT DỊCH VỤ */}
+      <section className="max-w-[1600px] mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-2xs">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><ShieldCheck className="w-6 h-6" /></div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Chính Hãng 100%</h3>
+              <p className="text-xs text-slate-400">Đầy đủ chứng từ ATVSTP</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Truck className="w-6 h-6" /></div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Giao Hàng Hỏa Tốc</h3>
+              <p className="text-xs text-slate-400">Đáp ứng đợt giao gấp của quán</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Clock className="w-6 h-6" /></div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Chốt Đơn Zalo 24/7</h3>
+              <p className="text-xs text-slate-400">Tự động báo giá sỉ & lẻ linh hoạt</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. SẢN PHẨM NỔI BẬT NGUYÊN LIỆU */}
+      <section className="max-w-[1600px] mx-auto px-6 space-y-6">
+        <div className="flex justify-between items-end border-b pb-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">Sản Phẩm Bán Chạy Cho Chuỗi Quán</h2>
+            <p className="text-xs text-slate-500 mt-1">Các dòng nguyên liệu trà, siro, bột pha chế bán chạy nhất tháng</p>
+          </div>
+          <Link href="/products" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+            Xem tất cả ({featuredProducts.length}+ món) <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {featuredProducts.map((p) => {
+            const basePrice = Number(p.price) / p.conversion_rate
+            const unitCartKey = `${p.id}-${p.unit}`
+            const baseCartKey = `${p.id}-${p.base_unit}`
+            const isLiked = wishlist.includes(p.id)
+
+            return (
+              <div key={p.id} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-lg transition-all flex flex-col justify-between relative group">
+                <button
+                  onClick={() => toggleWishlist(p.id)}
+                  className="absolute top-3 right-3 z-10 p-2 bg-white/80 rounded-full shadow-xs text-slate-400 hover:text-red-500 cursor-pointer"
+                >
+                  <Heart className={`w-4 h-4 ${isLiked ? 'text-red-500 fill-red-500' : ''}`} />
+                </button>
+
+                <Link href={`/products/${p.id}`} className="block space-y-3">
+                  <div className="w-full h-44 bg-slate-50 rounded-xl flex items-center justify-center">
+                    <PackageCheck className="w-12 h-12 text-slate-300 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-blue-600 uppercase">F&B INGREDIENT</span>
+                    <h3 className="font-bold text-slate-900 text-sm line-clamp-2 mt-1 group-hover:text-blue-600">{p.name}</h3>
+                    <p className="text-[11px] text-slate-400 mt-1">Quy cách: 1 {p.unit} = {p.conversion_rate} {p.base_unit}</p>
+                  </div>
+                </Link>
+
+                <div className="border-t border-slate-100 pt-3 space-y-2 mt-4">
+                  <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Sỉ ({p.unit}):</span>
+                      <strong className="text-emerald-600 font-bold">{Number(p.price).toLocaleString('vi-VN')} đ</strong>
+                    </div>
+                    <button onClick={() => addToCart(p, 'UNIT')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                      + Sỉ
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs bg-slate-50 p-2 rounded-xl">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block">Lẻ ({p.base_unit}):</span>
+                      <strong className="text-emerald-600 font-bold">{Math.round(basePrice).toLocaleString('vi-VN')} đ</strong>
+                    </div>
+                    <button onClick={() => addToCart(p, 'BASE')} className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                      + Lẻ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    </main>
+  )
+}
+</file>
+
+<file path="src/components/Footer.tsx">
+'use client'
+
+import Link from 'next/link'
+import { Store, ShieldCheck, Phone, Mail, MapPin, CreditCard, Truck } from 'lucide-react'
+
+export default function Footer() {
+  return (
+    <footer className="bg-[#193224] text-emerald-100 text-xs border-t-4 border-emerald-600/80 pt-12 pb-8 mt-12">
+      <div className="max-w-[1600px] mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-10">
+        
+        {/* CỘT 1: THÔNG TIN CÔNG TY & THƯƠNG HIỆU */}
+        <div className="md:col-span-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-md">
+              <Store className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="font-black text-lg text-white block tracking-tight">F&B B2B STORE</span>
+              <span className="text-[10px] text-emerald-400 font-mono block font-bold tracking-widest uppercase">
+                Tổng Kho Nguyên Liệu Trà & Cà Phê Giá Sỉ
+              </span>
+            </div>
+          </div>
+
+          <p className="text-emerald-200/80 text-[11px] leading-relaxed max-w-md">
+            Hệ thống thương mại điện tử B2B cung cấp giải pháp quản lý đặt hàng sỉ, tự động tính tồn kho và tối ưu vận hành cho chuỗi quán F&B toàn quốc.
+          </p>
+
+          <div className="text-emerald-200/90 space-y-2 text-[11px]">
+            <p className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-emerald-400 shrink-0" /> 
+              <strong>Trụ sở chính:</strong> Tầng 8, Tòa nhà Công Nghệ, Cầu Giấy, Hà Nội
+            </p>
+            <p className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-emerald-400 shrink-0" /> 
+              <strong>Hotline Zalo B2B:</strong> <span className="text-emerald-300 font-mono font-bold">0989.830.347</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-emerald-400 shrink-0" /> 
+              <strong>Email hỗ trợ:</strong> hotro@fbstore.vn
+            </p>
+          </div>
+
+          <div className="pt-1">
+            <div className="inline-flex items-center gap-2.5 bg-emerald-900/60 border border-emerald-700/60 px-3.5 py-2 rounded-xl">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              <div>
+                <span className="text-[10px] font-bold text-white block uppercase tracking-wider">ĐÃ THÔNG BÁO</span>
+                <span className="text-[9px] text-emerald-300/80 block font-mono">BỘ CÔNG THƯƠNG</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CỘT 2: DANH MỤC SẢN PHẨM */}
+        <div className="md:col-span-3 space-y-3">
+          <h3 className="font-bold text-white text-xs uppercase tracking-wider border-b border-emerald-800/80 pb-2">
+            Danh Mục Sản Phẩm
+          </h3>
+          <ul className="space-y-2 text-[11px] text-emerald-200/80">
+            <li><Link href="/products" className="hover:text-white transition-colors">Trà Đậm Vị Sỉ</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">Topping & Thạch Các Loại</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">Bột Pha Chế & Frappe</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">Kem Béo - Bột Béo</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">Siro & Mứt Trái Cây</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">Cà Phê Mộc Nguyên Chất</Link></li>
+          </ul>
+        </div>
+
+        {/* CỘT 3: HƯỚNG DẪN & CHÍNH SÁCH DÀNH CHO KHÁCH (ĐÃ XÓA ADMIN) */}
+        <div className="md:col-span-4 space-y-3">
+          <h3 className="font-bold text-white text-xs uppercase tracking-wider border-b border-emerald-800/80 pb-2">
+            Chính Sách & Hỗ Trợ Khách Hàng
+          </h3>
+          <ul className="space-y-2 text-[11px] text-emerald-200/80 grid grid-cols-2 gap-x-2">
+            <li><Link href="/login" className="hover:text-white transition-colors font-semibold">Tài khoản của tôi</Link></li>
+            <li><Link href="/wishlist" className="hover:text-white transition-colors font-semibold">Danh sách yêu thích</Link></li>
+            <li><Link href="/cart" className="hover:text-white transition-colors">Chính sách đổi trả</Link></li>
+            <li><Link href="/cart" className="hover:text-white transition-colors">Chính sách bảo mật</Link></li>
+            <li><Link href="/cart" className="hover:text-white transition-colors">Giao nhận & kiểm hàng</Link></li>
+            <li><Link href="/cart" className="hover:text-white transition-colors">Chính sách thanh toán sỉ</Link></li>
+          </ul>
+        </div>
+
+      </div>
+
+      {/* THANH ĐỐI TÁC VẬN CHUYỂN & THANH TOÁN */}
+      <div className="max-w-[1600px] mx-auto px-6 mt-10 pt-6 border-t border-emerald-800/80 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px]">
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-300/70 flex items-center gap-1 font-medium">
+            <Truck className="w-3.5 h-3.5 text-emerald-400" /> Đối tác vận chuyển:
+          </span>
+          <div className="flex items-center gap-1.5 font-bold font-mono text-[10px]">
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-amber-300 px-2.5 py-1 rounded-lg">GHTK</span>
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-orange-300 px-2.5 py-1 rounded-lg">GHN</span>
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-emerald-300 px-2.5 py-1 rounded-lg">GrabExpress</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-300/70 flex items-center gap-1 font-medium">
+            <CreditCard className="w-3.5 h-3.5 text-emerald-400" /> Phương thức thanh toán:
+          </span>
+          <div className="flex items-center gap-1.5 font-bold font-mono text-[10px]">
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-pink-300 px-2.5 py-1 rounded-lg">MOMO</span>
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-blue-300 px-2.5 py-1 rounded-lg">ZaloPay</span>
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-yellow-300 px-2.5 py-1 rounded-lg">VISA</span>
+            <span className="bg-emerald-900/80 border border-emerald-700/60 text-slate-200 px-2.5 py-1 rounded-lg">Chuyển Khoản</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center pt-6 text-[10px] text-emerald-400/60 font-mono">
+        © 2026 F&B STORE B2B SYSTEM. Tất cả quyền được bảo lưu.
+      </div>
+    </footer>
+  )
+}
+</file>
+
+<file path="src/components/Navbar.tsx">
+'use client'
+
+import { useState, useEffect, Suspense } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { 
+  Store, ShoppingBag, Menu, X, Heart, User, 
+  ChevronRight, LogOut, Settings, Phone, ArrowDownLeft, BarChart3, Users 
+} from 'lucide-react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Profile, Category } from '@/types/database'
+import SearchBar from '@/components/SearchBar'
+
+function NavbarContent() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentCategoryParam = searchParams.get('category')
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [cartCount, setCartCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
+  const [profile, setProfile] = useState<Profile | null>(null)
+
+  useEffect(() => {
+    async function fetchCategories() {
+      const { data } = await supabase.from('categories').select('*').order('display_order')
+      if (data) setCategories(data)
+    }
+    fetchCategories()
+
+    const updateCounts = () => {
+      const savedCart = localStorage.getItem('b2b_cart')
+      if (savedCart) {
+        try {
+          const parsed = JSON.parse(savedCart)
+          setCartCount(parsed.reduce((sum: number, i: any) => sum + i.quantity, 0))
+        } catch (e) {}
+      } else { setCartCount(0) }
+
+      const savedWishlist = localStorage.getItem('b2b_wishlist')
+      if (savedWishlist) {
+        try { setWishlistCount(JSON.parse(savedWishlist).length) } catch (e) {}
+      } else { setWishlistCount(0) }
+    }
+
+    updateCounts()
+    window.addEventListener('storage', updateCounts)
+    const interval = setInterval(updateCounts, 1000)
+
+    return () => {
+      window.removeEventListener('storage', updateCounts)
+      clearInterval(interval)
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) setProfile(data)
+      }
+    }
+    fetchUserProfile()
+  }, [pathname])
+
+  // HEADER RIÊNG CHO TRANG ADMIN NỘI BỘ
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && profile) {
+    const isOwner = profile.role === 'OWNER'
+    const isAdmin = profile.role === 'ADMIN'
+
+    return (
+      <header className="bg-slate-900 text-white sticky top-0 z-50 shadow-md border-b border-slate-800">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/admin/orders" className="flex items-center gap-3">
+            <div className="bg-emerald-600 p-2 rounded-xl text-white">
+              <Store className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-base tracking-wide block">F&B ADMIN SYSTEM</span>
+              <span className="text-[10px] text-emerald-400 block -mt-1 font-mono">INTERNAL MANAGEMENT</span>
+            </div>
+          </Link>
+
+          <nav className="flex items-center gap-2 text-xs font-semibold">
+            <Link href="/admin/orders/new" className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5">
+              <ShoppingBag className="w-4 h-4 text-emerald-400" /> POS Lên Đơn
+            </Link>
+            <Link href="/admin/orders" className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5">
+              <Store className="w-4 h-4 text-amber-400" /> Quản Lý Đơn
+            </Link>
+            {(isOwner || isAdmin) && (
+              <Link href="/admin/import" className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5">
+                <ArrowDownLeft className="w-4 h-4 text-cyan-400" /> Nhập Kho
+              </Link>
+            )}
+            {(isOwner || isAdmin) && (
+              <Link href="/admin/reports" className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-purple-400" /> Báo Cáo
+              </Link>
+            )}
+            {(isOwner || isAdmin) && (
+              <Link href="/admin/staff" className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-blue-400" /> Nhân Sự
+              </Link>
+            )}
+            <Link href="/admin/settings" className="ml-2 px-3 py-1.5 rounded-xl bg-slate-800 text-amber-400 font-bold flex items-center gap-1">
+              <Settings className="w-3.5 h-3.5" /> {profile.full_name}
+            </Link>
+            <button onClick={async () => { await supabase.auth.signOut(); router.push('/admin/login'); }} className="p-2 bg-red-600/80 rounded-lg hover:bg-red-600 text-white cursor-pointer">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </nav>
+        </div>
+      </header>
+    )
+  }
+
+  // HEADER STOREFRONT CHO KHÁCH HÀNG MUA HÀNG
+  return (
+    <>
+      <header className="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-2xs">
+        {/* TOP BAR THÔNG BÁO */}
+        <div className="bg-slate-900 text-slate-300 text-[11px] py-1.5 px-6">
+          <div className="max-w-[1600px] mx-auto flex justify-between items-center">
+            <span>🎉 Tổng kho nguyên liệu F&B giá sỉ - Cam kết chính hãng 100%</span>
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1 font-mono text-emerald-400 font-bold">
+                <Phone className="w-3 h-3" /> Hotline / Zalo B2B: 0989.830.347
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* HEADER CHÍNH */}
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-4 md:gap-8">
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-800 font-bold text-xs cursor-pointer shrink-0"
+          >
+            <Menu className="w-6 h-6 text-slate-900" />
+            <span className="hidden sm:inline uppercase tracking-wider">Danh Mục</span>
+          </button>
+
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-xs">
+              <Store className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="font-black text-xl tracking-tight text-slate-900 block leading-none">F&B STORE</span>
+              <span className="text-[9px] font-bold text-emerald-600 tracking-widest block uppercase mt-0.5">B2B Ingredient</span>
+            </div>
+          </Link>
+
+          {/* CỤM TÌM KIẾM ĐÃ TÁCH COMPONENT */}
+          <SearchBar />
+
+          {/* CỤM NÚT THAO TÁC CỦA KHÁCH HÀNG */}
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <Link
+              href="/login"
+              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-xl text-slate-700 hover:text-emerald-600 transition-colors text-xs font-semibold"
+              title="Tài khoản khách hàng"
+            >
+              <User className="w-5 h-5 text-slate-600" />
+              <span className="hidden xl:inline">Tài Khoản</span>
+            </Link>
+
+            <Link 
+              href="/wishlist" 
+              className="relative p-2 hover:bg-slate-100 rounded-xl text-slate-700 hover:text-red-600 transition-colors"
+              title="Sản phẩm yêu thích"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+
+            <Link href="/cart" className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl font-bold text-xs shadow-xs transition-all">
+              <div className="relative">
+                <ShoppingBag className="w-5 h-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-amber-400 text-slate-900 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                    {cartCount}
+                  </span>
+                )}
+              </div>
+              <span className="hidden sm:inline">Giỏ Hàng</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* NAVIGATION BAR DƯỚI */}
+        <nav className="border-t border-slate-100 bg-white">
+          <div className="max-w-[1600px] mx-auto px-6 h-11 flex items-center justify-center gap-8 text-xs font-bold text-slate-700 overflow-x-auto scrollbar-none">
+            <Link
+              href="/"
+              className={`hover:text-emerald-600 whitespace-nowrap transition-colors ${
+                pathname === '/' ? 'text-emerald-600 font-black border-b-2 border-emerald-600 py-2.5' : ''
+              }`}
+            >
+              TRANG CHỦ
+            </Link>
+
+            <Link
+              href="/products"
+              className={`hover:text-emerald-600 whitespace-nowrap transition-colors ${
+                pathname === '/products' && !currentCategoryParam ? 'text-emerald-600 font-black border-b-2 border-emerald-600 py-2.5' : ''
+              }`}
+            >
+              TẤT CẢ NGUYÊN LIỆU
+            </Link>
+
+            {categories.map((cat) => {
+              const isSelected = currentCategoryParam === cat.id
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/products?category=${cat.id}`}
+                  className={`hover:text-emerald-600 whitespace-nowrap transition-colors uppercase ${
+                    isSelected ? 'text-emerald-600 font-black border-b-2 border-emerald-600 py-2.5' : ''
+                  }`}
+                >
+                  {cat.name}
+                </Link>
+              )
+            })}
+
+            <span className="text-red-500 font-black uppercase whitespace-nowrap cursor-pointer hover:opacity-80">
+              🔥 KÈM ƯU ĐÃI SỈ
+            </span>
+          </div>
+        </nav>
+      </header>
+
+      {/* DRAWER MENU SLIDE OUT */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex">
+          <div className="bg-white w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between animate-in slide-in-from-left duration-300">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <Store className="w-6 h-6 text-emerald-600" />
+                  <span className="font-black text-lg text-slate-900">DANH MỤC SẢN PHẨM</span>
+                </div>
+                <button onClick={() => setIsMenuOpen(false)} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <Link
+                  href="/products"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-between p-3 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl font-bold text-sm text-slate-800 transition-colors"
+                >
+                  <span>Tất Cả Nguyên Liệu F&B</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/products?category=${cat.id}`}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center justify-between p-3 hover:bg-slate-50 hover:text-emerald-600 rounded-xl font-medium text-xs text-slate-700 transition-colors"
+                  >
+                    <span>{cat.name}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-300" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-900 space-y-1">
+                <p className="font-bold">Tổng kho bán sỉ B2B Phạm Vi Toàn Quốc</p>
+                <p className="text-slate-600">Hotline đặt hàng gấp: 0989.830.347</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1" onClick={() => setIsMenuOpen(false)} />
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function Navbar() {
+  return (
+    <Suspense fallback={<header className="bg-slate-900 h-16 w-full" />}>
+      <NavbarContent />
+    </Suspense>
+  )
+}
+</file>
+
+<file path="src/components/SearchBar.tsx">
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { X, PackageCheck } from 'lucide-react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Product } from '@/types/database'
+
+export default function SearchBar() {
+  const router = useRouter()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [suggestions, setSuggestions] = useState<Product[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    async function fetchProducts() {
+      const { data } = await supabase.from('products').select('*')
+      if (data) setAllProducts(data)
+    }
+    fetchProducts()
+  }, [])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setSearchTerm(value)
+
+    if (value.trim().length > 0) {
+      const matched = allProducts.filter((p) =>
+        p.name.toLowerCase().includes(value.toLowerCase()) ||
+        p.sku.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5)
+      setSuggestions(matched)
+      setShowSuggestions(true)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleClearSearch = () => {
+    setSearchTerm('')
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchTerm.trim()) {
+      setShowSuggestions(false)
+      router.push(`/products?search=${encodeURIComponent(searchTerm.trim())}`)
+    }
+  }
+
+  const handleSelectProduct = (productId: string) => {
+    setShowSuggestions(false)
+    setSearchTerm('')
+    router.push(`/products/${productId}`)
+  }
+
+  return (
+    <div ref={searchRef} className="flex-1 max-w-2xl relative hidden md:block">
+      <form onSubmit={handleSearchSubmit} className="relative">
+        <input
+          type="text"
+          placeholder="Nhập nguyên liệu, siro, mứt... (Nhấn Enter để tìm)"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          onFocus={() => searchTerm.trim() && setShowSuggestions(true)}
+          className="w-full pl-4 pr-10 py-3 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+        />
+        
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
+            title="Xóa chữ"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </form>
+
+      {/* DROPDOWN ĐỀ XUẤT GỢI Ý */}
+      {showSuggestions && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+          {suggestions.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              <div className="p-2.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Gợi Ý Nguyên Liệu Phù Hợp ({suggestions.length})
+              </div>
+              {suggestions.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleSelectProduct(item.id)}
+                  className="flex items-center gap-3 p-3 hover:bg-emerald-50/60 transition-colors cursor-pointer"
+                >
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
+                    <PackageCheck className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-xs text-slate-900 truncate">{item.name}</p>
+                    <p className="text-[10px] text-slate-400">Quy cách: 1 {item.unit}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-emerald-600 block">
+                      {Number(item.price).toLocaleString('vi-VN')} đ
+                    </span>
+                    <span className="text-[9px] text-slate-400 block font-mono">Giá sỉ</span>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={handleSearchSubmit}
+                className="w-full text-center py-2.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50 bg-slate-50/50 block cursor-pointer transition-colors"
+              >
+                Xem tất cả kết quả cho "{searchTerm}" →
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 text-center text-xs text-slate-400">
+              Không tìm thấy nguyên liệu phù hợp với "{searchTerm}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+</file>
+
+<file path="src/lib/zalo.ts">
+export interface ZaloOrderPayload {
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+  notes?: string
+  totalAmount: number
+  items: Array<{
+    name: string
+    unit: string
+    quantity: number
+    price: number
+  }>
+}
+
+// Số điện thoại Zalo của Doanh nghiệp/Admin tiếp nhận đơn
+const ADMIN_ZALO_PHONE = '0989830347' // Kiều có thể đổi thành SĐT Zalo của bạn
+
+export function buildZaloCustomerMessage(data: ZaloOrderPayload): string {
+  const itemList = data.items
+    .map(
+      (item) =>
+        `• ${item.name}: ${item.quantity} ${item.unit} x ${Math.round(
+          item.price
+        ).toLocaleString('vi-VN')}đ`
+    )
+    .join('\n')
+
+  return `🛒 [ĐƠN ĐẶT HÀNG MỚI TỪ KHÁCH HÀNG]
+Chủ quán/Khách: ${data.customerName}
+SĐT Zalo: ${data.customerPhone}
+Địa chỉ giao: ${data.customerAddress}
+${data.notes ? `Ghi chú: ${data.notes}\n` : ''}
+📋 Danh sách món đặt:
+${itemList}
+
+💰 Tổng giá trị đơn: ${Math.round(data.totalAmount).toLocaleString('vi-VN')} VNĐ
+
+Nhờ Shop xác nhận và giao hàng giúp tôi!`
+}
+
+export function getAdminZaloDeepLink(text: string): string {
+  const encodedText = encodeURIComponent(text)
+  return `https://zalo.me/${ADMIN_ZALO_PHONE}?text=${encodedText}`
+}
+</file>
+
+<file path="src/types/database.ts">
+export type UserRole = 'OWNER' | 'ADMIN' | 'STAFF';
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  display_order: number;
+}
+
+export interface Product {
+  id: string;
+  category_id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  base_unit: string;
+  conversion_rate: number;
+  price: number;
+  cost_price: number;
+  stock_quantity: number;
+  min_stock_alert: number;
+}
+
+export interface Order {
+  id: string;
+  order_code: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address?: string;
+  total_amount: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+</file>
+
+<file path="src/middleware.ts">
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            request.cookies.set(name, value)
+          )
+          response = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
+
+  // 1. Cho phép truy cập tự do vào trang Login của Admin
+  if (pathname === '/admin/login') {
+    return response
+  }
+
+  // 2. Chặn nếu vào bất kỳ trang /admin/* nào mà chưa Đăng Nhập
+  if (pathname.startsWith('/admin') && !user) {
+    return NextResponse.redirect(new URL('/admin/login', request.url))
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: ['/admin/:path*'],
+}
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="AGENTS.md">
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+</file>
+
+<file path="CLAUDE.md">
+@AGENTS.md
+</file>
+
+<file path="eslint.config.mjs">
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+};
+
+export default nextConfig;
+</file>
+
+<file path="package.json">
+{
+  "name": "my-fb-b2b",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.111.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.27.0",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+</file>
+
+</files>
