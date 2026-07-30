@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Order } from '@/types/database'
+import { Product, Order } from '@/types/database'
 import OrderTable from './components/OrderTable'
 import OrderDetailView, { ExtendedOrderItem } from './components/OrderDetailView'
 
