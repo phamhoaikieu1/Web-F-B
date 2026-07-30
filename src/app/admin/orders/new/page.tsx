@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Product } from '../../../types/database'
+import { Product } from '@/types/database'
 import { CheckCircle } from 'lucide-react'
 import OrderProductSelector from '../components/OrderProductSelector'
 import CartAndCheckoutForm, { CartItem } from '../components/CartAndCheckoutForm'
