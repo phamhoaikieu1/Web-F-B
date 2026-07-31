@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { X, PackageCheck } from 'lucide-react'
+import { Search, X, PackageCheck } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { Product } from '@/types/database'
 
@@ -76,32 +75,34 @@ export default function SearchBar() {
   }
 
   return (
-    <div ref={searchRef} className="flex-1 max-w-2xl relative hidden md:block">
-      <form onSubmit={handleSearchSubmit} className="relative">
+    <div ref={searchRef} className="w-full relative">
+      <form onSubmit={handleSearchSubmit} className="relative flex items-center">
+        <Search className="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" />
+        
+        {/* 📱 FIX ZOOM MOBILE: text-base trên Mobile (16px cấm zoom), text-xs trên Desktop */}
         <input
           type="text"
-          placeholder="Nhập nguyên liệu, siro, mứt... (Nhấn Enter để tìm)"
+          placeholder="Nhập nguyên liệu, siro, mứt... cần tìm?"
           value={searchTerm}
           onChange={handleSearchChange}
           onFocus={() => searchTerm.trim() && setShowSuggestions(true)}
-          className="w-full pl-4 pr-10 py-3 bg-slate-100 hover:bg-slate-100/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+          className="w-full pl-9 pr-9 py-2.5 bg-slate-100/90 focus:bg-white border border-slate-200 focus:border-slate-400 rounded-xl text-base md:text-xs font-medium focus:outline-none transition-all placeholder:text-slate-400"
         />
         
         {searchTerm && (
           <button
             type="button"
             onClick={handleClearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-full hover:bg-slate-200 transition-colors cursor-pointer"
-            title="Xóa chữ"
+            className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </form>
 
-      {/* DROPDOWN ĐỀ XUẤT GỢI Ý */}
+      {/* DROPDOWN GỢI Ý TÌM KIẾM */}
       {showSuggestions && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
           {suggestions.length > 0 ? (
             <div className="divide-y divide-slate-100">
               <div className="p-2.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -113,7 +114,7 @@ export default function SearchBar() {
                   onClick={() => handleSelectProduct(item.id)}
                   className="flex items-center gap-3 p-3 hover:bg-emerald-50/60 transition-colors cursor-pointer"
                 >
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
                     <PackageCheck className="w-5 h-5 text-slate-400" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -124,7 +125,6 @@ export default function SearchBar() {
                     <span className="text-xs font-bold text-emerald-600 block">
                       {Number(item.price).toLocaleString('vi-VN')} đ
                     </span>
-                    <span className="text-[9px] text-slate-400 block font-mono">Giá sỉ</span>
                   </div>
                 </div>
               ))}
