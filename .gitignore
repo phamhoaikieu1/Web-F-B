@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI & Repomix files
+AGENTS.md
+CLAUDE.md
+repomix-output.xml
+*.repomix.*
