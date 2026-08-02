@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Store, ShoppingBag, Menu, X, Heart, User, ChevronRight, Phone, MessageSquare } from 'lucide-react'
+import { Store, ShoppingBag, Menu, X, Heart, User, ChevronRight, Phone, MessageSquare, ShieldCheck } from 'lucide-react'
 import SearchBar from '@/components/SearchBar'
-import { Category } from '@/types/database'
+import { Category, Profile } from '@/types/database'
+import { createBrowserClient } from '@supabase/ssr'
 
 interface NavbarMobileProps {
   categories: Category[]
@@ -19,6 +20,23 @@ export default function NavbarMobile({
 }: NavbarMobileProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [bannerIndex, setBannerIndex] = useState(0)
+  const [profile, setProfile] = useState<Profile | null>(null)
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    async function loadUserProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) setProfile(data)
+      }
+    }
+    loadUserProfile()
+  }, [])
 
   const bannerMessages = [
     "🎉 Tổng kho nguyên liệu F&B giá sỉ - Cam kết chính hãng 100%",
@@ -81,6 +99,17 @@ export default function NavbarMobile({
 
           {/* Cụm Icon Phím Tắt */}
           <div className="flex items-center gap-1 shrink-0">
+            {profile && (
+              <Link
+                href="/admin/orders"
+                className="bg-blue-950 text-amber-300 border border-amber-400/40 p-1.5 rounded-xl font-bold text-[10px] flex items-center gap-1 shrink-0"
+                title="Cổng Admin"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            )}
+
             <Link href="/login" className="p-1.5 text-slate-700 hover:text-emerald-600">
               <User className="w-5 h-5" />
             </Link>

@@ -3,7 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { toast } from 'sonner'
 import { Profile, Category } from '@/types/database'
+import { clearLocalGuestData } from '@/lib/syncCart'
 import NavbarDesktop from './navbar/NavbarDesktop'
 import NavbarMobile from './navbar/NavbarMobile'
 
@@ -56,6 +58,14 @@ function NavbarContent() {
   }, [])
 
   useEffect(() => {
+    const errorParam = searchParams.get('error')
+    const msgParam = searchParams.get('message')
+    if (errorParam === 'unauthorized' || msgParam) {
+      toast.error(msgParam || 'Tài khoản của bạn không có quyền truy cập trang quản trị!')
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     const fetchUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -68,6 +78,7 @@ function NavbarContent() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+    clearLocalGuestData()
     router.push('/admin/login')
   }
 

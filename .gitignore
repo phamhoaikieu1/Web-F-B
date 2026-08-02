@@ -40,8 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# AI & Repomix files
+# AI Tools & Repomix Outputs
 AGENTS.md
 CLAUDE.md
-repomix-output.xml
 *.repomix.*
+repomix-output.xml
+repomix-output*.xml
+*.sql.tmp
+
+# Ignore temporary SQL & Migration dumps at root
+/*.sql
+/*.sql.tmp
+supabase/.temp/

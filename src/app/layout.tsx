@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
-import ScrollToTop from '@/components/ScrollToTop'
+import ToasterProvider from '@/components/ToasterProvider'
 
 export const metadata: Metadata = {
   title: 'Hệ Thống Quản Lý Kho & Bán Sỉ F&B',
@@ -25,12 +23,8 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="bg-slate-100 text-slate-900 min-h-screen antialiased flex flex-col">
-        <Navbar />
-        <div className="flex-1">
-          {children}
-        </div>
-        <Footer />
-        <ScrollToTop />
+        <ToasterProvider />
+        {children}
       </body>
     </html>
   )

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Store, ShoppingBag, Heart, User, Phone, ArrowDownLeft, BarChart3, Users, Settings, LogOut, Menu, X, ChevronRight } from 'lucide-react'
+import { Store, ShoppingBag, Heart, User, Phone, ArrowDownLeft, BarChart3, Users, Settings, LogOut, Menu, X, ChevronRight, ShieldCheck } from 'lucide-react'
 import SearchBar from '@/components/SearchBar'
 import { Profile, Category } from '@/types/database'
 
@@ -118,10 +118,21 @@ export default function NavbarDesktop({
             <SearchBar />
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            {profile && (
+              <Link
+                href="/admin/orders"
+                className="flex items-center gap-1.5 bg-gradient-to-r from-blue-900 to-indigo-900 text-amber-300 border border-amber-400/40 px-3.5 py-2 rounded-2xl font-bold text-xs shadow-sm hover:opacity-90 transition-all"
+                title="Chuyển sang Giao diện Quản trị Admin"
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span>Cổng Quản Trị Admin</span>
+              </Link>
+            )}
+
             <Link href="/login" className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-xl text-slate-700 hover:text-emerald-600 transition-colors text-xs font-semibold">
               <User className="w-5 h-5 text-slate-600" />
-              <span>Tài Khoản</span>
+              <span>{profile ? profile.full_name : 'Tài Khoản'}</span>
             </Link>
 
             <Link href="/wishlist" className="relative p-2 hover:bg-slate-100 rounded-xl text-slate-700 hover:text-red-600 transition-colors">

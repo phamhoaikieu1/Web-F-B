@@ -13,7 +13,7 @@ export interface ZaloOrderPayload {
 }
 
 // Số điện thoại Zalo của Doanh nghiệp/Admin tiếp nhận đơn
-const ADMIN_ZALO_PHONE = '0989830347' // Kiều có thể đổi thành SĐT Zalo của bạn
+const ADMIN_ZALO_PHONE = '0989830347'
 
 export function buildZaloCustomerMessage(data: ZaloOrderPayload): string {
   const itemList = data.items

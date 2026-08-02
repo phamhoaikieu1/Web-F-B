@@ -57,10 +57,7 @@ export default function ScrollToTop() {
     <button
       type="button"
       onClick={scrollToTop}
-      /* TỰ ĐỘNG DỜI LÊN VỊ TRÍ BOTTOM-24 NẾU CÓ GIỎ HÀNG, HOẶC BOTTOM-6 NẾU KHÔNG CÓ GIỎ HÀNG */
-      className={`fixed right-4 md:right-8 z-40 p-3 bg-slate-900/90 hover:bg-emerald-600 text-white rounded-2xl shadow-xl transition-all duration-300 backdrop-blur-xs cursor-pointer group ${
-        hasCart ? 'bottom-20 md:bottom-24' : 'bottom-6 md:bottom-8'
-      }`}
+      className="fixed bottom-20 right-4 md:right-8 z-30 p-3 bg-slate-900/90 hover:bg-indigo-600 text-white rounded-2xl shadow-xl transition-all duration-300 backdrop-blur-xs cursor-pointer group border border-slate-700/80"
       aria-label="Cuộn lên đầu trang"
     >
       <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
