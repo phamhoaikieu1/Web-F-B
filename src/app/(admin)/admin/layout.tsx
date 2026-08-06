@@ -10,18 +10,14 @@ import {
   PlusCircle,
   ArrowDownLeft,
   Package,
-  Users,
   BarChart3,
-  ShieldCheck,
-  Settings,
   LogOut,
   Menu,
   X,
-  Crown,
-  Briefcase,
-  UserCheck,
-  Store,
-  ChevronRight
+  ShieldCheck,
+  ChevronRight,
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { clearLocalGuestData } from '@/lib/syncCart'
@@ -61,13 +57,12 @@ export default function AdminLayout({
 
   const navigation = [
     { name: 'Quản Lý Đơn Hàng', href: '/admin/orders', icon: ShoppingBag },
-    { name: 'Tạo Đơn Sỉ Mới (POS)', href: '/admin/orders/new', icon: PlusCircle },
+    { name: 'Tạo Đơn Bán Sỉ (POS)', href: '/admin/orders/new', icon: PlusCircle },
     { name: 'Nhập Kho Nguyên Liệu', href: '/admin/import', icon: ArrowDownLeft },
     { name: 'Quản Lý Sản Phẩm', href: '/admin/products', icon: Package },
-    { name: 'Quản Lý Khách Sỉ', href: '/admin/customers', icon: Users },
+    { name: 'Quản Lý Banner', href: '/admin/banners', icon: ImageIcon },
+    { name: 'Quản Lý Bài Viết / Công Thức', href: '/admin/posts', icon: FileText },
     { name: 'Báo Cáo Kinh Doanh', href: '/admin/reports', icon: BarChart3 },
-    { name: 'Quản Lý Nhân Sự', href: '/admin/staff', icon: ShieldCheck },
-    { name: 'Cài Đặt Tài Khoản', href: '/admin/settings', icon: Settings },
   ]
 
   // Đóng mobile menu khi chuyển trang
@@ -105,21 +100,9 @@ export default function AdminLayout({
 
         {profile && (
           <div className="flex items-center gap-2">
-            {profile.role === 'OWNER' && (
-              <span className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Crown className="w-3 h-3 text-amber-300" /> CEO
-              </span>
-            )}
-            {profile.role === 'ADMIN' && (
-              <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Briefcase className="w-3 h-3 text-blue-300" /> Leader
-              </span>
-            )}
-            {profile.role === 'STAFF' && (
-              <span className="bg-slate-700 text-slate-300 border border-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                <UserCheck className="w-3 h-3 text-slate-300" /> NV
-              </span>
-            )}
+            <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-blue-300" /> Quản Lý Kho / Admin
+            </span>
           </div>
         )}
       </header>
@@ -154,10 +137,10 @@ export default function AdminLayout({
               {profile && (
                 <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
-                    {profile.full_name.slice(0, 1)}
+                    {profile.full_name?.slice(0, 1) || 'A'}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs text-white truncate">{profile.full_name}</p>
+                    <p className="font-bold text-xs text-white truncate">{profile.full_name || 'Admin'}</p>
                     <p className="text-[10px] text-slate-400 font-mono truncate">{profile.email}</p>
                   </div>
                 </div>
@@ -191,13 +174,6 @@ export default function AdminLayout({
             </div>
 
             <div className="space-y-2 border-t border-slate-800 pt-4">
-              <Link
-                href="/"
-                className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-              >
-                <Store className="w-4 h-4" /> Trang Chủ Bán Hàng
-              </Link>
-
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center gap-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border border-rose-500/30"
@@ -230,26 +206,14 @@ export default function AdminLayout({
           {profile && (
             <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/60 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-sm shrink-0">
-                {profile.full_name.slice(0, 1)}
+                {profile.full_name?.slice(0, 1) || 'A'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-xs text-white truncate">{profile.full_name}</p>
+                <p className="font-bold text-xs text-white truncate">{profile.full_name || 'Admin'}</p>
                 <div className="mt-0.5">
-                  {profile.role === 'OWNER' && (
-                    <span className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      <Crown className="w-3 h-3 text-amber-300" /> Giám Đốc (CEO)
-                    </span>
-                  )}
-                  {profile.role === 'ADMIN' && (
-                    <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      <Briefcase className="w-3 h-3 text-blue-300" /> Trưởng Phòng
-                    </span>
-                  )}
-                  {profile.role === 'STAFF' && (
-                    <span className="bg-slate-700 text-slate-300 border border-slate-600 text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      <UserCheck className="w-3 h-3 text-slate-300" /> Nhân Viên Sales
-                    </span>
-                  )}
+                  <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-blue-300" /> Quản Lý Kho / Admin
+                  </span>
                 </div>
               </div>
             </div>
@@ -284,13 +248,6 @@ export default function AdminLayout({
 
         {/* BOTTOM LINKS & LOGOUT */}
         <div className="space-y-2 border-t border-slate-800 pt-4">
-          <Link
-            href="/"
-            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-          >
-            <Store className="w-4 h-4" /> Về Trang Chủ Bán Hàng
-          </Link>
-
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border border-rose-500/30"

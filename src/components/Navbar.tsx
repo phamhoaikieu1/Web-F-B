@@ -1,17 +1,14 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
-import { toast } from 'sonner'
-import { Profile, Category } from '@/types/database'
-import { clearLocalGuestData } from '@/lib/syncCart'
+import { Category } from '@/types/database'
 import NavbarDesktop from './navbar/NavbarDesktop'
 import NavbarMobile from './navbar/NavbarMobile'
 
 function NavbarContent() {
   const pathname = usePathname()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const currentCategoryParam = searchParams.get('category')
 
@@ -22,8 +19,6 @@ function NavbarContent() {
 
   const [categories, setCategories] = useState<Category[]>([])
   const [cartCount, setCartCount] = useState(0)
-  const [wishlistCount, setWishlistCount] = useState(0)
-  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     async function fetchCategories() {
@@ -40,11 +35,6 @@ function NavbarContent() {
           setCartCount(parsed.reduce((sum: number, i: any) => sum + i.quantity, 0))
         } catch (e) {}
       } else { setCartCount(0) }
-
-      const savedWishlist = localStorage.getItem('b2b_wishlist')
-      if (savedWishlist) {
-        try { setWishlistCount(JSON.parse(savedWishlist).length) } catch (e) {}
-      } else { setWishlistCount(0) }
     }
 
     updateCounts()
@@ -57,49 +47,20 @@ function NavbarContent() {
     }
   }, [])
 
-  useEffect(() => {
-    const errorParam = searchParams.get('error')
-    const msgParam = searchParams.get('message')
-    if (errorParam === 'unauthorized' || msgParam) {
-      toast.error(msgParam || 'Tài khoản của bạn không có quyền truy cập trang quản trị!')
-    }
-  }, [searchParams])
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        if (data) setProfile(data)
-      }
-    }
-    fetchUserProfile()
-  }, [pathname])
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    clearLocalGuestData()
-    router.push('/admin/login')
-  }
-
   return (
     <>
       {/* Component Desktop: Chỉ hiện từ màn hình md trở lên */}
       <NavbarDesktop
         pathname={pathname}
-        profile={profile}
         categories={categories}
         cartCount={cartCount}
-        wishlistCount={wishlistCount}
         currentCategoryParam={currentCategoryParam}
-        onSignOut={handleSignOut}
       />
 
       {/* Component Mobile: Chỉ hiện trên màn hình điện thoại (< md) */}
       <NavbarMobile
         categories={categories}
         cartCount={cartCount}
-        wishlistCount={wishlistCount}
       />
     </>
   )

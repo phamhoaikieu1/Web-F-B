@@ -151,23 +151,25 @@ Hãy nhập thắc mắc hoặc chọn câu hỏi gợi ý bên dưới nhé!`,
       unit: prod.unit || 'gói',
       base_unit: prod.unit || 'gói',
       conversion_rate: 1,
-      price: prod.price,
+      retail_price: prod.price,
+      wholesale_price: prod.price,
+      wholesale_min_qty: 1,
       cost_price: prod.price * 0.7,
       stock_quantity: 999,
       min_stock_alert: 10,
     }
 
-    addItemToB2bCart(mockProduct, prod.unit, qty)
+    addItemToB2bCart(mockProduct, qty)
     toast.success(`Đã thêm ${qty} ${prod.unit} ${prod.name} vào giỏ hàng!`)
   }
 
   return (
     <>
-      {/* BUTTON NỔI BẬT AI CHATBOT Ở GÓC PHẢI DƯỚI */}
+      {/* BUTTON NỔI BẬT AI CHATBOT Ở GÓC PHẢI DƯỚI (MÀN MOBILE TRÁNH MOBILE BOTTOM NAV BẰNG bottom-20) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 md:right-8 z-40 group flex items-center gap-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white p-3.5 pl-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20 active:scale-95"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 group flex items-center gap-3 bg-gradient-to-r from-emerald-700 via-teal-600 to-blue-600 text-white p-3.5 pl-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer border border-white/20 active:scale-95"
           aria-label="Mở Trợ lý AI Đặt Sỉ B2B"
         >
           <div className="relative flex items-center justify-center">

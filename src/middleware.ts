@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           response = NextResponse.next({
@@ -42,23 +42,6 @@ export async function middleware(request: NextRequest) {
   // 2. Chặn nếu vào bất kỳ trang /admin/* nào mà chưa Đăng Nhập
   if (pathname.startsWith('/admin') && !user) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
-  }
-
-  // 3. Nếu User đã đăng nhập nhưng truy cập /admin/*: Đọc role từ profiles
-  if (pathname.startsWith('/admin') && user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    const allowedRoles = ['OWNER', 'ADMIN', 'STAFF']
-    if (!profile || !allowedRoles.includes(profile.role)) {
-      const redirectUrl = new URL('/', request.url)
-      redirectUrl.searchParams.set('error', 'unauthorized')
-      redirectUrl.searchParams.set('message', 'Tài khoản của bạn không có quyền truy cập trang quản trị!')
-      return NextResponse.redirect(redirectUrl)
-    }
   }
 
   return response

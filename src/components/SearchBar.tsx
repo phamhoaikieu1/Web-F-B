@@ -123,7 +123,7 @@ export default function SearchBar() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-bold text-emerald-600 block">
-                      {Number(item.price).toLocaleString('vi-VN')} đ
+                      {Number(item.wholesale_price ?? item.retail_price ?? (item as any).price ?? 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                 </div>

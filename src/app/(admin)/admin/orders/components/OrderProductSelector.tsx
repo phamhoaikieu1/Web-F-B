@@ -1,7 +1,7 @@
 'use client'
 
-import { Search, Plus } from 'lucide-react'
 import { Product } from '@/types/database'
+import { Plus, Search } from 'lucide-react'
 
 interface OrderProductSelectorProps {
   products: Product[]
@@ -9,7 +9,7 @@ interface OrderProductSelectorProps {
   setSearchTerm: (term: string) => void
   selectedUnits: { [productId: string]: 'UNIT' | 'BASE' }
   onUnitChange: (productId: string, unitType: 'UNIT' | 'BASE') => void
-  onAddToCart: (product: Product) => void
+  onAddToCart: (p: Product) => void
 }
 
 export default function OrderProductSelector({
@@ -23,27 +23,33 @@ export default function OrderProductSelector({
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Gõ tên hoặc mã SKU để tìm chọn nhanh..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
+          Chọn Sản Phẩm Vào Giỏ (B2B)
+        </h2>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm theo tên sản phẩm hoặc mã SKU..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-1.5 text-xs outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[650px] overflow-y-auto pr-1">
         {filteredProducts.map((p) => {
           const currentUnitType = selectedUnits[p.id] || 'UNIT'
           const isBaseSelected = currentUnitType === 'BASE'
-          const basePrice = Number(p.price) / p.conversion_rate
+          const rPrice = Number(p.retail_price ?? (p as any).price ?? 0)
+          const wPrice = Number(p.wholesale_price ?? rPrice)
 
           return (
             <div
@@ -94,8 +100,8 @@ export default function OrderProductSelector({
                     </div>
                     <div className="text-sm font-bold text-emerald-600">
                       {isBaseSelected
-                        ? `${Math.round(basePrice).toLocaleString('vi-VN')} đ / ${p.base_unit}`
-                        : `${Number(p.price).toLocaleString('vi-VN')} đ / ${p.unit}`}
+                        ? `${Math.round(rPrice).toLocaleString('vi-VN')} đ / ${p.base_unit}`
+                        : `${(wPrice * p.conversion_rate).toLocaleString('vi-VN')} đ / ${p.unit}`}
                     </div>
                   </div>
                   <button
@@ -104,7 +110,7 @@ export default function OrderProductSelector({
                     className="bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 p-2 rounded-lg transition-colors cursor-pointer"
                     title="Thêm vào giỏ"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
               </div>

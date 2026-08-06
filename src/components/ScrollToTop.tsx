@@ -57,7 +57,7 @@ export default function ScrollToTop() {
     <button
       type="button"
       onClick={scrollToTop}
-      className="fixed bottom-20 right-4 md:right-8 z-30 p-3 bg-slate-900/90 hover:bg-indigo-600 text-white rounded-2xl shadow-xl transition-all duration-300 backdrop-blur-xs cursor-pointer group border border-slate-700/80"
+      className="fixed bottom-36 right-4 md:bottom-24 md:right-6 z-30 p-3 bg-slate-900/90 hover:bg-[#006838] text-white rounded-2xl shadow-xl transition-all duration-300 backdrop-blur-xs cursor-pointer group border border-slate-700/80 active:scale-95"
       aria-label="Cuộn lên đầu trang"
     >
       <ArrowUp className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />

@@ -1,20 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, ArrowLeft, Trash2, CheckCircle2, Copy, Printer, MessageSquare, ExternalLink, ShieldCheck } from 'lucide-react'
+import { ShoppingBag, ArrowLeft, Trash2, CheckCircle2, Copy, Printer, MessageSquare, ExternalLink } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { Product, Order } from '@/types/database'
 import { toast } from 'sonner'
 import CartItemList from './components/CartItemList'
 import CheckoutForm from './components/CheckoutForm'
-import OrderSummaryCard from './components/OrderSummaryCard'
 import InvoicePrintModal from '@/components/InvoicePrintModal'
+import { getB2BUnitPrice, formatUnitQuantityBreakdown } from '@/lib/pricing'
 
 export interface CartItem {
   product: Product
-  selectedUnit: string
   quantity: number
   unitPrice: number
 }
@@ -47,11 +46,19 @@ export default function CartPage() {
   const [isCopied, setIsCopied] = useState(false)
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
 
-  // Đọc thông tin khách hàng từ localStorage để tự động điền lại
+  // Đọc giỏ hàng và thông tin khách hàng từ localStorage
   useEffect(() => {
     const savedCart = localStorage.getItem('b2b_cart')
     if (savedCart) {
-      try { setCart(JSON.parse(savedCart)) } catch (e) {}
+      try {
+        const parsed = JSON.parse(savedCart)
+        // Cập nhật lại unitPrice theo BR-01
+        const updated = parsed.map((item: CartItem) => ({
+          ...item,
+          unitPrice: getB2BUnitPrice(item.product, item.quantity),
+        }))
+        setCart(updated)
+      } catch (e) {}
     }
 
     const savedInfo = localStorage.getItem('b2b_customer_info')
@@ -67,14 +74,20 @@ export default function CartPage() {
   }, [])
 
   const updateCart = (newCart: CartItem[]) => {
-    setCart(newCart)
-    localStorage.setItem('b2b_cart', JSON.stringify(newCart))
+    // Tự động tính lại đơn giá B2B theo BR-01 mỗi khi số lượng thay đổi
+    const recalculated = newCart.map((item) => ({
+      ...item,
+      unitPrice: getB2BUnitPrice(item.product, item.quantity),
+    }))
+    setCart(recalculated)
+    localStorage.setItem('b2b_cart', JSON.stringify(recalculated))
+    window.dispatchEvent(new Event('storage'))
   }
 
-  const handleUpdateQuantity = (cartKey: string, delta: number) => {
+  const handleUpdateQuantity = (productId: string, delta: number) => {
     const updated = cart
       .map((item) => {
-        if (`${item.product.id}-${item.selectedUnit}` === cartKey) {
+        if (item.product.id === productId) {
           const newQty = item.quantity + delta
           return newQty > 0 ? { ...item, quantity: newQty } : null
         }
@@ -85,22 +98,30 @@ export default function CartPage() {
     updateCart(updated)
   }
 
-  const handleRemoveItem = (cartKey: string) => {
-    updateCart(cart.filter((item) => `${item.product.id}-${item.selectedUnit}` !== cartKey))
+  const handleRemoveItem = (productId: string) => {
+    updateCart(cart.filter((item) => item.product.id !== productId))
     toast.info('Đã xóa sản phẩm khỏi giỏ hàng')
   }
 
   const handleClearCart = () => {
     setCart([])
     localStorage.removeItem('b2b_cart')
+    window.dispatchEvent(new Event('storage'))
   }
 
-  const totalAmount = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
+  const totalAmount = cart.reduce((sum, item) => {
+    const unitPrice = getB2BUnitPrice(item.product, item.quantity)
+    return sum + unitPrice * item.quantity
+  }, 0)
 
   // HÀM TẠO NỘI DUNG VĂN BẢN ĐƠN HÀNG
   const generateOrderMessage = (orderCode: string) => {
     const itemList = cart
-      .map((i) => `• ${i.product.name}: ${i.quantity} ${i.selectedUnit} x ${Math.round(i.unitPrice).toLocaleString('vi-VN')}đ`)
+      .map((i) => {
+        const uPrice = getB2BUnitPrice(i.product, i.quantity)
+        const breakdown = formatUnitQuantityBreakdown(i.product, i.quantity)
+        return `• ${i.product.name}: ${breakdown} x ${Math.round(uPrice).toLocaleString('vi-VN')}đ/${i.product.base_unit}`
+      })
       .join('\n')
 
     return `🛒 [ĐƠN ĐẶT HÀNG MỚI - MÃ: ${orderCode}]
@@ -126,64 +147,29 @@ Nhờ Shop xác nhận và soạn hàng giúp tôi!`
 
     setIsSubmitting(true)
     try {
-      const cleanPhone = customerPhone.trim()
-
-      // 0. Kiểm tra SĐT có bị Khóa Đặt Sỉ hay không (profiles.is_locked HOẶC blacklisted_phones)
-      const { data: lockedProfile } = await supabase
-        .from('profiles')
-        .select('id, is_locked')
-        .eq('phone', cleanPhone)
-        .eq('is_locked', true)
-        .maybeSingle()
-
-      const { data: blacklistedItem } = await supabase
-        .from('blacklisted_phones')
-        .select('id')
-        .eq('phone', cleanPhone)
-        .maybeSingle()
-
-      if (lockedProfile || blacklistedItem) {
-        setIsSubmitting(false)
-        return toast.error('Số điện thoại này hiện đang bị khóa đặt sỉ. Vui lòng liên hệ Hotline/Zalo để hỗ trợ!')
-      }
-
       // Lưu thông tin khách để lần sau tự điền
       localStorage.setItem('b2b_customer_info', JSON.stringify({
         customerName, storeName, customerPhone, customerAddress
       }))
 
       const now = new Date()
-      const orderCode = `ORD-${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`
+      const dd = String(now.getDate()).padStart(2, '0')
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const yy = String(now.getFullYear()).slice(-2)
+      const orderCode = `ORD-${dd}${mm}${yy}-${Math.floor(1000 + Math.random() * 9000)}`
 
-      // Kiểm tra vết người đặt đơn (Khách tự đặt / Khách ẩn danh / Nhân viên POS đặt hộ)
-      const { data: { user } } = await supabase.auth.getUser()
-      let createdByType = 'ANONYMOUS_GUEST'
-      let createdByUserId = null
-
-      if (user) {
-        createdByUserId = user.id
-        const { data: userProf } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        if (userProf && ['OWNER', 'ADMIN', 'STAFF'].includes(userProf.role)) {
-          createdByType = 'STAFF_POS'
-        } else {
-          createdByType = 'CUSTOMER_SELF'
-        }
-      }
-
-      // 1. Lưu vào Database
+      // 1. Lưu Đơn Hàng vào Database (orders)
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_code: orderCode,
           customer_name: customerName.trim(),
-          store_name: storeName.trim() || null,
           customer_phone: customerPhone.trim(),
           customer_address: customerAddress.trim(),
+          store_name: storeName.trim() || null,
           total_amount: totalAmount,
           status: 'PENDING',
           notes: notes.trim() || 'Đơn hàng từ Trang Giỏ Hàng B2B',
-          created_by_type: createdByType,
-          created_by_user_id: createdByUserId,
         })
         .select()
         .single()
@@ -192,29 +178,37 @@ Nhờ Shop xác nhận và soạn hàng giúp tôi!`
 
       const formattedOrderItems: Array<{ name: string; unit: string; quantity: number; price: number; subtotal: number }> = []
 
+      // 2. Chốt Snapshot Đơn Giá (unit_price), Giá Vốn MAC (cost_price) & Subtotal vào order_items
       for (const item of cart) {
-        await supabase.from('order_items').insert({
+        const unitPrice = getB2BUnitPrice(item.product, item.quantity)
+        const subtotal = unitPrice * item.quantity
+        const macCostPrice = Number(item.product.avg_cost_price ?? item.product.cost_price ?? 0)
+
+        const { error: itemErr } = await supabase.from('order_items').insert({
           order_id: orderData.id,
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: item.unitPrice,
-          subtotal: item.unitPrice * item.quantity,
+          unit_price: unitPrice,
+          cost_price: macCostPrice,
+          subtotal: subtotal,
         })
+
+        if (itemErr) throw itemErr
 
         formattedOrderItems.push({
           name: item.product.name,
-          unit: item.selectedUnit,
+          unit: item.product.base_unit,
           quantity: item.quantity,
-          price: item.unitPrice,
-          subtotal: item.unitPrice * item.quantity,
+          price: unitPrice,
+          subtotal: subtotal,
         })
       }
 
-      // 2. Tạo nội dung văn bản & Link Zalo
+      // 3. Tạo nội dung văn bản & Link Zalo
       const messageText = generateOrderMessage(orderCode)
       const zaloUrl = `https://zalo.me/0989830347`
 
-      // 3. Tự động Copy nội dung đơn hàng vào Clipboard
+      // 4. Tự động Copy nội dung đơn hàng vào Clipboard
       try {
         await navigator.clipboard.writeText(messageText)
         setIsCopied(true)
@@ -223,7 +217,7 @@ Nhờ Shop xác nhận và soạn hàng giúp tôi!`
         console.error('Lỗi auto copy:', err)
       }
 
-      // 4. Hiển thị Popup / Mobile Bottom Sheet Đơn hàng Thành công
+      // 5. Hiển thị Popup / Mobile Bottom Sheet Đơn hàng Thành công
       setSuccessOrder({
         orderCode,
         totalAmount,
@@ -385,4 +379,4 @@ Nhờ Shop xác nhận và soạn hàng giúp tôi!`
       )}
     </main>
   )
-}
+}

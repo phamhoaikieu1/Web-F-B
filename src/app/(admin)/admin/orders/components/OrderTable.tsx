@@ -11,7 +11,7 @@ interface OrderTableProps {
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
-type PaymentFilter = 'ALL' | 'UNPAID' | 'PARTIAL' | 'PAID' | 'DEBT'
+type PaymentFilter = 'ALL' | 'UNPAID' | 'PAID'
 
 export default function OrderTable({
   orders,
@@ -84,9 +84,7 @@ export default function OrderTable({
           {([
             { key: 'ALL', label: 'Tất cả' },
             { key: 'UNPAID', label: '⏳ Chưa trả' },
-            { key: 'PARTIAL', label: '🔶 Trả 1 phần' },
             { key: 'PAID', label: '✅ Đã trả đủ' },
-            { key: 'DEBT', label: '🔴 Ghi nợ' },
           ] as const).map((f) => (
             <button
               key={f.key}
@@ -136,25 +134,11 @@ export default function OrderTable({
                   <tr key={o.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4">
                       <div className="font-mono font-bold text-blue-600 text-sm">{o.order_code}</div>
-                      <div className="mt-1">
-                        {o.created_by_type === 'STAFF_POS' ? (
-                          <span className="inline-block bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                            👨‍💼 NV {o.created_by_name || 'POS'} lên đơn
-                          </span>
-                        ) : o.created_by_type === 'CUSTOMER_SELF' ? (
-                          <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                            👤 Khách Tự Đặt
-                          </span>
-                        ) : (
-                          <span className="inline-block bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-semibold">
-                            👤 Khách Ẩn Danh
-                          </span>
-                        )}
-                      </div>
                     </td>
                     <td className="p-4">
                       <div className="font-semibold text-slate-900">
                         {o.customer_name}
+                        {o.store_name && <span className="ml-1 text-emerald-700 font-bold text-xs">({o.store_name})</span>}
                       </div>
                       <div className="text-xs text-slate-500">
                         {o.customer_phone}
@@ -203,21 +187,6 @@ export default function OrderTable({
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <span className="font-mono font-bold text-blue-600 text-sm">{o.order_code}</span>
-                    <div className="mt-1">
-                      {o.created_by_type === 'STAFF_POS' ? (
-                        <span className="inline-block bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                          👨‍💼 NV {o.created_by_name || 'POS'}
-                        </span>
-                      ) : o.created_by_type === 'CUSTOMER_SELF' ? (
-                        <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                          👤 Khách Đặt
-                        </span>
-                      ) : (
-                        <span className="inline-block bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded text-[9px]">
-                          👤 Ẩn Danh
-                        </span>
-                      )}
-                    </div>
                   </div>
                   <OrderStatusBadge status={o.status} />
                 </div>
@@ -254,7 +223,7 @@ function OrderStatusBadge({ status }: { status: string }) {
       </span>
     )
   }
-  if (status === 'CONFIRMED' || status === 'PROCESSING') {
+  if (status === 'CONFIRMED') {
     return (
       <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
         <Package className="w-3 h-3 text-blue-600" /> ĐÃ XUẤT KHO
@@ -286,24 +255,10 @@ function PaymentStatusBadge({ paymentStatus }: { paymentStatus?: string }) {
       </span>
     )
   }
-  if (paymentStatus === 'PARTIAL') {
-    return (
-      <span className="inline-block bg-orange-50 text-orange-700 border border-orange-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
-        🔶 Trả 1 phần
-      </span>
-    )
-  }
   if (paymentStatus === 'PAID') {
     return (
       <span className="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
         ✅ Đã trả đủ
-      </span>
-    )
-  }
-  if (paymentStatus === 'DEBT') {
-    return (
-      <span className="inline-block bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded text-[9px] font-bold">
-        🔴 Ghi nợ
       </span>
     )
   }

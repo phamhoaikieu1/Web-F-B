@@ -7,6 +7,7 @@ import { CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import OrderProductSelector from '../components/OrderProductSelector'
 import CartAndCheckoutForm, { CartItem } from '../components/CartAndCheckoutForm'
+import { getB2BUnitPrice } from '@/lib/pricing'
 
 export default function CreateOrderPage() {
   const supabase = createBrowserClient(
@@ -47,22 +48,21 @@ export default function CreateOrderPage() {
   const addToCart = (product: Product) => {
     const unitType = selectedUnits[product.id] || 'UNIT'
     const isBase = unitType === 'BASE'
-    const unitName = isBase ? product.base_unit : product.unit
-    
-    const calculatedUnitPrice = isBase
-      ? Number(product.price) / product.conversion_rate
-      : Number(product.price)
+    const addQty = isBase ? 1 : Math.max(1, product.conversion_rate || 1)
 
     setCart((prev) => {
-      const cartKey = `${product.id}-${unitName}`
-      const existing = prev.find(
-        (item) => `${item.product.id}-${item.selectedUnit}` === cartKey
-      )
+      const existing = prev.find((item) => item.product.id === product.id)
+      let updatedQty = addQty
+      if (existing) {
+        updatedQty = existing.quantity + addQty
+      }
+
+      const calculatedUnitPrice = getB2BUnitPrice(product, updatedQty)
 
       if (existing) {
         return prev.map((item) =>
-          `${item.product.id}-${item.selectedUnit}` === cartKey
-            ? { ...item, quantity: item.quantity + 1 }
+          item.product.id === product.id
+            ? { ...item, quantity: updatedQty, unitPrice: calculatedUnitPrice }
             : item
         )
       }
@@ -71,22 +71,22 @@ export default function CreateOrderPage() {
         ...prev,
         {
           product,
-          selectedUnit: unitName,
-          isBaseUnit: isBase,
-          quantity: 1,
+          quantity: addQty,
           unitPrice: calculatedUnitPrice,
         },
       ]
     })
   }
 
-  const updateQuantity = (cartKey: string, delta: number) => {
+  const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
       prev
         .map((item) => {
-          if (`${item.product.id}-${item.selectedUnit}` === cartKey) {
+          if (item.product.id === productId) {
             const newQty = item.quantity + delta
-            return newQty > 0 ? { ...item, quantity: newQty } : null
+            if (newQty <= 0) return null
+            const calculatedUnitPrice = getB2BUnitPrice(item.product, newQty)
+            return { ...item, quantity: newQty, unitPrice: calculatedUnitPrice }
           }
           return item
         })
@@ -94,10 +94,10 @@ export default function CreateOrderPage() {
     )
   }
 
-  const totalAmount = cart.reduce(
-    (sum, item) => sum + item.unitPrice * item.quantity,
-    0
-  )
+  const totalAmount = cart.reduce((sum, item) => {
+    const unitPrice = getB2BUnitPrice(item.product, item.quantity)
+    return sum + unitPrice * item.quantity
+  }, 0)
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,20 +109,20 @@ export default function CreateOrderPage() {
     setIsSubmitting(true)
     try {
       const now = new Date()
-      const yy = String(now.getFullYear()).slice(-2)
-      const mm = String(now.getMonth() + 1).padStart(2, '0')
       const dd = String(now.getDate()).padStart(2, '0')
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const yy = String(now.getFullYear()).slice(-2)
       const random4 = Math.floor(1000 + Math.random() * 9000)
-      const orderCode = `ORD-${yy}${mm}${dd}-${random4}`
+      const orderCode = `ORD-${dd}${mm}${yy}-${random4}`
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_code: orderCode,
           customer_name: customerName.trim() || storeName.trim(),
-          store_name: storeName.trim() || null,
           customer_phone: customerPhone.trim(),
           customer_address: customerAddress.trim(),
+          store_name: storeName.trim() || null,
           total_amount: totalAmount,
           status: 'PENDING',
           notes: notes.trim() || null,
@@ -132,13 +132,18 @@ export default function CreateOrderPage() {
 
       if (orderError) throw orderError
 
+      // Chốt Snapshot unit_price, cost_price (MAC) & subtotal vào order_items theo quy tắc BR-01
       for (const item of cart) {
-        const subtotal = item.unitPrice * item.quantity
+        const unitPrice = getB2BUnitPrice(item.product, item.quantity)
+        const subtotal = unitPrice * item.quantity
+        const macCostPrice = Number(item.product.avg_cost_price ?? item.product.cost_price ?? 0)
+
         const { error: itemError } = await supabase.from('order_items').insert({
           order_id: orderData.id,
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: item.unitPrice,
+          unit_price: unitPrice,
+          cost_price: macCostPrice,
           subtotal: subtotal,
         })
 
@@ -165,7 +170,7 @@ export default function CreateOrderPage() {
     <main className="p-8 max-w-[1600px] mx-auto space-y-6">
       <header>
         <h1 className="text-2xl font-bold text-slate-900">Tạo Đơn Bán Sỉ (POS)</h1>
-        <p className="text-sm text-slate-500">Lập đơn hàng B2B linh hoạt mua sỉ / mua lẻ theo đợt</p>
+        <p className="text-sm text-slate-500">Lập đơn hàng B2B tự động tính Giá Lẻ & Giá Sỉ theo ngưỡng BR-01</p>
       </header>
 
       {successCode && (

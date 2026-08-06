@@ -1,10 +1,10 @@
 import { Product } from '@/types/database'
+import { getB2BUnitPrice } from './pricing'
 
 export interface CartItem {
   product: Product
-  selectedUnit: string
-  quantity: number
-  unitPrice: number
+  quantity: number // Luôn là tổng số lượng đơn vị cơ sở (base_unit)
+  unitPrice: number // Đơn giá B2B cho 1 base_unit
 }
 
 export const CART_STORAGE_KEY = 'b2b_cart'
@@ -21,29 +21,40 @@ export function getCartItems(): CartItem[] {
   }
 }
 
-export function addItemToB2bCart(product: Product, selectedUnit: string = product.unit || 'gói', quantity: number = 1): CartItem[] {
+/**
+ * Thêm sản phẩm vào giỏ hàng B2B (Mỗi product.id chỉ có duy nhất 1 dòng)
+ * @param product Sản phẩm nguyên liệu
+ * @param addBaseQuantity Số lượng đơn vị cơ sở (base_unit) cần cộng thêm (ví dụ: +1 hoặc +conversion_rate)
+ */
+export function addItemToB2bCart(
+  product: Product,
+  addBaseQuantity: number = 1
+): CartItem[] {
   if (typeof window === 'undefined') return []
   
   const currentCart = getCartItems()
-  const cartKey = `${product.id}-${selectedUnit}`
+  const productId = product.id
   
   const existingIndex = currentCart.findIndex(
-    (item) => `${item.product.id}-${item.selectedUnit}` === cartKey
+    (item) => item.product.id === productId
   )
 
   let updatedCart: CartItem[]
 
   if (existingIndex > -1) {
     updatedCart = [...currentCart]
-    updatedCart[existingIndex].quantity += quantity
+    const newQty = updatedCart[existingIndex].quantity + addBaseQuantity
+    updatedCart[existingIndex].quantity = newQty
+    updatedCart[existingIndex].product = product // Cập nhật thông tin mới nhất
+    updatedCart[existingIndex].unitPrice = getB2BUnitPrice(product, newQty)
   } else {
+    const unitPrice = getB2BUnitPrice(product, addBaseQuantity)
     updatedCart = [
       ...currentCart,
       {
         product,
-        selectedUnit,
-        quantity,
-        unitPrice: Number(product.price) || 0,
+        quantity: addBaseQuantity,
+        unitPrice,
       },
     ]
   }

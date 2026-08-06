@@ -2,18 +2,17 @@
 
 import { ShoppingCart, Plus, Minus } from 'lucide-react'
 import { Product } from '@/types/database'
+import { formatUnitQuantityBreakdown } from '@/lib/pricing'
 
 export interface CartItem {
   product: Product
-  selectedUnit: string
-  isBaseUnit: boolean
   quantity: number
   unitPrice: number
 }
 
 interface CartAndCheckoutFormProps {
   cart: CartItem[]
-  onUpdateQuantity: (cartKey: string, delta: number) => void
+  onUpdateQuantity: (productId: string, delta: number) => void
   totalAmount: number
   customerName: string
   setCustomerName: (v: string) => void
@@ -61,114 +60,125 @@ export default function CartAndCheckoutForm({
               </p>
             ) : (
               cart.map((item) => {
-                const cartKey = `${item.product.id}-${item.selectedUnit}`
+                const productId = item.product.id
+                const breakdownText = formatUnitQuantityBreakdown(item.product, item.quantity)
                 return (
                   <div
-                    key={cartKey}
+                    key={productId}
                     className="flex items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-900 truncate">
                         {item.product.name}
                       </p>
-                      <p className="text-xs text-emerald-600 font-medium">
+                      <p className="text-[11px] text-emerald-600 font-medium">
                         {Math.round(item.unitPrice).toLocaleString('vi-VN')} đ /{' '}
-                        <span className="font-bold text-blue-600">{item.selectedUnit}</span>
+                        <span className="font-bold text-slate-700">{item.product.base_unit}</span>
+                      </p>
+                      <p className="text-[10px] text-blue-700 font-bold truncate">
+                        📦 {breakdownText}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => onUpdateQuantity(cartKey, -1)}
+                        onClick={() => onUpdateQuantity(productId, -1)}
                         className="p-1 text-slate-500 hover:bg-slate-200 rounded cursor-pointer"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
+                      <span className="text-xs font-bold w-8 text-center">{item.quantity}</span>
                       <button
                         type="button"
-                        onClick={() => onUpdateQuantity(cartKey, 1)}
+                        onClick={() => onUpdateQuantity(productId, 1)}
                         className="p-1 text-slate-500 hover:bg-slate-200 rounded cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </button>
-                    </div>
-
-                    <div className="text-right min-w-[80px]">
-                      <p className="text-xs font-bold text-slate-900">
-                        {Math.round(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
-                      </p>
                     </div>
                   </div>
                 )
               })
             )}
           </div>
-        </div>
 
-        <div className="border-t border-slate-200 pt-4 space-y-3">
-          <h3 className="font-semibold text-slate-900 text-sm">Thông Tin Khách Hàng & Giao Hàng</h3>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Tên chủ quán / Khách hàng"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Tên quán / Thương hiệu"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              required
-              placeholder="Số điện thoại Zalo *"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              required
-              placeholder="Địa chỉ giao hàng chi tiết *"
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <textarea
-            placeholder="Ghi chú đơn hàng (nếu có)..."
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-          />
-        </div>
-
-        <div className="border-t border-slate-200 pt-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-700">Tổng Thành Tiền:</span>
-            <span className="text-xl font-bold text-blue-600">
+          <div className="border-t border-slate-100 pt-3 mt-4 flex justify-between items-center">
+            <span className="text-xs font-semibold text-slate-500">Tổng tiền tạm tính:</span>
+            <span className="text-lg font-bold text-blue-600">
               {Math.round(totalAmount).toLocaleString('vi-VN')} đ
             </span>
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <h3 className="font-semibold text-xs text-slate-700 uppercase tracking-wider">
+            Thông tin nhận hàng (Khách B2B)
+          </h3>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] text-slate-500 block mb-1">Tên khách hàng *</label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Nguyễn Văn A"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] text-slate-500 block mb-1">Tên quán / Chuỗi</label>
+              <input
+                type="text"
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                placeholder="Trà Sữa Mixue..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] text-slate-500 block mb-1">Số điện thoại Zalo *</label>
+            <input
+              type="text"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="0989..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500 font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] text-slate-500 block mb-1">Địa chỉ giao hàng *</label>
+            <input
+              type="text"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              placeholder="123 Đường ABC, Quận 1..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] text-slate-500 block mb-1">Ghi chú đơn hàng</label>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ghi chú giao hàng..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs outline-none focus:border-blue-500 resize-none"
+            />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting || cart.length === 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition-colors text-sm cursor-pointer"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 text-xs shadow-md cursor-pointer"
           >
-            {isSubmitting ? 'Đang tạo đơn...' : 'XÁC NHẬN TẠO ĐƠN HÀNG'}
+            {isSubmitting ? 'ĐANG TẠO ĐƠN HÀNG...' : 'XÁC NHẬN TẠO ĐƠN HÀNG (POS)'}
           </button>
         </div>
       </form>

@@ -36,7 +36,7 @@ export default function InventoryImportPage() {
 
   const handleSelectProduct = (p: Product) => {
     setSelectedProduct(p)
-    setImportCostPrice(Number(p.cost_price) * p.conversion_rate || Number(p.price))
+    setImportCostPrice(Number(p.cost_price) * p.conversion_rate || Number(p.wholesale_price || p.retail_price || 0))
   }
 
   const handleSubmitImport = async (e: React.FormEvent) => {
@@ -50,17 +50,21 @@ export default function InventoryImportPage() {
       const newStockQuantity = selectedProduct.stock_quantity + baseQtyImport
       const currentImportCostPerBaseUnit = importCostPrice / selectedProduct.conversion_rate
 
-      const oldTotalValue = selectedProduct.stock_quantity * Number(selectedProduct.cost_price || 0)
+      const oldAvgCost = Number(selectedProduct.avg_cost_price ?? selectedProduct.cost_price ?? 0)
+      const oldTotalValue = selectedProduct.stock_quantity * oldAvgCost
       const newImportValue = baseQtyImport * currentImportCostPerBaseUnit
       const newMovingAverageCost = newStockQuantity > 0 
         ? (oldTotalValue + newImportValue) / newStockQuantity 
         : currentImportCostPerBaseUnit
 
+      const roundedMac = Math.round(newMovingAverageCost * 100) / 100
+
       const { error: updateError } = await supabase
         .from('products')
         .update({
           stock_quantity: newStockQuantity,
-          cost_price: Math.round(newMovingAverageCost * 100) / 100,
+          cost_price: Math.round(currentImportCostPerBaseUnit * 100) / 100,
+          avg_cost_price: roundedMac,
         })
         .eq('id', selectedProduct.id)
 
@@ -71,15 +75,12 @@ export default function InventoryImportPage() {
       const { data: { user } } = await supabase.auth.getUser()
 
       const { error: logError } = await supabase
-        .from('inventory_transactions')
+        .from('inventory_receipts')
         .insert({
           product_id: selectedProduct.id,
-          type: 'IMPORT',
-          quantity: baseQtyImport,
-          cost_price: currentImportCostPerBaseUnit,
-          reference_id: refCode,
-          notes: notes.trim() || `Nhập ${importQty} ${selectedProduct.unit} (Giá BQ di động: ${Math.round(newMovingAverageCost).toLocaleString('vi-VN')} đ/${selectedProduct.base_unit})`,
-          created_by: user?.id || null,
+          import_quantity: importQty,
+          import_price: importCostPrice,
+          notes: notes.trim() || `Nhập kho ${importQty} ${selectedProduct.unit}`,
         })
 
       if (logError) throw logError

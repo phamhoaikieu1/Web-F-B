@@ -15,6 +15,7 @@ import BrandFilter from './components/BrandFilter'
 import ProductCard from './components/ProductCard'
 import StickyCartBar from './components/StickyCartBar'
 import Pagination from './components/Pagination'
+import { getB2BUnitPrice } from '@/lib/pricing'
 
 const ITEMS_PER_PAGE = 24
 
@@ -30,14 +31,13 @@ function ProductsContent() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [wishlist, setWishlist] = useState<string[]>([])
   const [maxDbPrice, setMaxDbPrice] = useState<number>(5000000)
 
   // PHÂN TRANG STATE
   const [currentPage, setCurrentPage] = useState<number>(1)
 
   // TOAST & CART STATS
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toastMessage] = useState<string | null>(null)
   const [cartCount, setCartCount] = useState<number>(0)
   const [cartTotal, setCartTotal] = useState<number>(0)
 
@@ -60,7 +60,7 @@ function ProductsContent() {
         // Ẩn sản phẩm ngừng bán (is_disabled = true) khỏi giao diện khách
         const activeProd = prodData.filter((p: any) => !p.is_disabled)
         setProducts(activeProd as Product[])
-        const highest = Math.max(...prodData.map((p) => Number(p.price) || 0))
+        const highest = Math.max(...prodData.map((p) => Number(p.wholesale_price ?? p.retail_price ?? (p as any).price ?? 0)))
         if (highest > 0) setMaxDbPrice(highest)
       }
     }
@@ -72,16 +72,14 @@ function ProductsContent() {
         try {
           const parsed = JSON.parse(savedCart)
           setCartCount(parsed.reduce((sum: number, i: any) => sum + i.quantity, 0))
-          setCartTotal(parsed.reduce((sum: number, i: any) => sum + i.unitPrice * i.quantity, 0))
+          setCartTotal(parsed.reduce((sum: number, i: any) => {
+            const uPrice = getB2BUnitPrice(i.product, i.quantity)
+            return sum + uPrice * i.quantity
+          }, 0))
         } catch (e) {}
       } else {
         setCartCount(0)
         setCartTotal(0)
-      }
-
-      const savedWishlist = localStorage.getItem('b2b_wishlist')
-      if (savedWishlist) {
-        try { setWishlist(JSON.parse(savedWishlist)) } catch (e) {}
       }
     }
 
@@ -121,15 +119,15 @@ function ProductsContent() {
 
   let filtered = products.filter((p) => {
     const matchCat = selectedCategory ? p.category_id === selectedCategory : true
-    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-    const priceVal = Number(p.price) || 0
+    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.sku || '').toLowerCase().includes(searchTerm.toLowerCase())
+    const priceVal = Number(p.wholesale_price ?? p.retail_price ?? (p as any).price ?? 0)
     const matchPrice = priceVal >= minPrice && priceVal <= maxPrice
     const matchBrand = selectedBrands.length === 0 || selectedBrands.some((b) => p.name.toLowerCase().includes(b.toLowerCase()))
     return matchCat && matchSearch && matchPrice && matchBrand
   })
 
-  if (sortBy === 'price-asc') filtered.sort((a, b) => Number(a.price) - Number(b.price))
-  else if (sortBy === 'price-desc') filtered.sort((a, b) => Number(b.price) - Number(a.price))
+  if (sortBy === 'price-asc') filtered.sort((a, b) => Number(a.wholesale_price ?? a.retail_price ?? (a as any).price) - Number(b.wholesale_price ?? b.retail_price ?? (b as any).price))
+  else if (sortBy === 'price-desc') filtered.sort((a, b) => Number(b.wholesale_price ?? b.retail_price ?? (b as any).price) - Number(a.wholesale_price ?? a.retail_price ?? (a as any).price))
   else if (sortBy === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name))
   else if (sortBy === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name))
 
@@ -151,41 +149,31 @@ function ProductsContent() {
     }
   }
 
-  const toggleWishlist = (productId: string) => {
-    const isCurrentlyLiked = wishlist.includes(productId)
-    let updated = isCurrentlyLiked ? wishlist.filter((id) => id !== productId) : [...wishlist, productId]
-    setWishlist(updated)
-    localStorage.setItem('b2b_wishlist', JSON.stringify(updated))
-    window.dispatchEvent(new Event('storage'))
-
-    const prod = products.find((p) => p.id === productId)
-    const prodName = prod ? prod.name : 'Sản phẩm'
-    if (isCurrentlyLiked) {
-      toast.info(`Đã bỏ ${prodName} khỏi danh sách yêu thích`)
-    } else {
-      toast.success(`Đã thêm ${prodName} vào danh sách yêu thích!`)
-    }
-  }
-
   const addToCart = (product: Product, unitType: 'UNIT' | 'BASE') => {
     const isBase = unitType === 'BASE'
-    const unitName = isBase ? product.base_unit : product.unit
-    const price = isBase ? Number(product.price) / product.conversion_rate : Number(product.price)
-    const cartKey = `${product.id}-${unitName}`
+    const addQty = isBase ? 1 : Math.max(1, product.conversion_rate || 1)
 
     const savedCart = localStorage.getItem('b2b_cart')
     let currentCart: any[] = []
     if (savedCart) { try { currentCart = JSON.parse(savedCart) } catch (e) {} }
 
-    const existingIndex = currentCart.findIndex((i) => `${i.product.id}-${i.selectedUnit}` === cartKey)
-    if (existingIndex > -1) currentCart[existingIndex].quantity += 1
-    else currentCart.push({ product, selectedUnit: unitName, quantity: 1, unitPrice: price })
+    const existingIndex = currentCart.findIndex((i) => i.product.id === product.id)
+    let newQty = addQty
+    if (existingIndex > -1) {
+      currentCart[existingIndex].quantity += addQty
+      newQty = currentCart[existingIndex].quantity
+      currentCart[existingIndex].product = product
+      currentCart[existingIndex].unitPrice = getB2BUnitPrice(product, newQty)
+    } else {
+      currentCart.push({ product, quantity: addQty, unitPrice: getB2BUnitPrice(product, addQty) })
+    }
 
     localStorage.setItem('b2b_cart', JSON.stringify(currentCart))
     window.dispatchEvent(new Event('storage'))
     window.dispatchEvent(new Event('b2b_cart_updated'))
 
-    toast.success(`Đã thêm 1 x ${product.name} (${unitName}) vào giỏ hàng!`)
+    const addedLabel = isBase ? `1 ${product.base_unit}` : `1 ${product.unit} (${product.conversion_rate} ${product.base_unit})`
+    toast.success(`Đã thêm ${addedLabel} ${product.name} vào giỏ hàng!`)
   }
 
   return (
@@ -199,16 +187,31 @@ function ProductsContent() {
 
       {/* BREADCRUMB */}
       <nav className="flex items-center flex-wrap gap-1.5 text-[11px] md:text-xs text-slate-500 py-1">
-        <Link href="/" className="hover:text-emerald-600 flex items-center gap-1 font-medium"><Home className="w-3.5 h-3.5" /> Trang chủ</Link>
+        <Link href="/" className="hover:text-[#006838] flex items-center gap-1 font-medium"><Home className="w-3.5 h-3.5" /> Trang chủ</Link>
         <ChevronRight className="w-3 h-3 text-slate-300" />
-        <Link href="/products" className={`hover:text-emerald-600 font-medium ${!selectedCategory ? 'text-slate-900 font-bold' : ''}`}>Danh Mục Nguyên Liệu</Link>
-        {currentCategoryObj && (<><ChevronRight className="w-3 h-3 text-slate-300" /><span className="font-black text-emerald-600 uppercase">{currentCategoryObj.name}</span></>)}
+        <Link href="/products" className={`hover:text-[#006838] font-medium ${!selectedCategory ? 'text-slate-900 font-bold' : ''}`}>Danh Mục Nguyên Liệu</Link>
+        {currentCategoryObj && (<><ChevronRight className="w-3 h-3 text-slate-300" /><span className="font-black text-[#006838] uppercase">{currentCategoryObj.name}</span></>)}
       </nav>
 
-      <div className="border-b border-slate-200 pb-2">
-        <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight uppercase">
-          {currentCategoryObj ? currentCategoryObj.name : 'TẤT CẢ NGUYÊN LIỆU F&B'}
-        </h1>
+      {/* CATEGORY HEADER BANNER (~160PX HEIGHT DYNAMIC F&B GRADIENT) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-[#006838] to-slate-950 text-white min-h-[160px] p-6 md:p-8 flex items-center shadow-md border border-emerald-800/40">
+        <div className="relative z-10 max-w-3xl space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] md:text-xs font-bold text-emerald-300">
+            <span>📦</span>
+            <span>TỔNG KHO NGUYÊN LIỆU F&B GIÁ SỈ TẬN GỐC</span>
+          </div>
+          <h1 className="text-xl md:text-3xl font-black tracking-tight uppercase text-white drop-shadow-xs">
+            {currentCategoryObj ? currentCategoryObj.name : 'TỔNG KHO NGUYÊN LIỆU PHA CHẾ B2B - CHÍNH HÃNG 100%'}
+          </h1>
+          <p className="text-xs md:text-sm text-slate-200 leading-relaxed max-w-2xl font-normal">
+            {currentCategoryObj 
+              ? `Phân phối sỉ dòng sản phẩm ${currentCategoryObj.name} chuẩn vị cho chuỗi quán Trà Sữa, Cafe & Bánh Ngọt. Chiết khấu cao theo Thùng.`
+              : 'Phân phối đầy đủ siro, mứt, trà, bột pha chế chính hãng. Đầy đủ hóa đơn VAT, chứng nhận ATVSTP & chốt đơn hỏa tốc.'}
+          </p>
+        </div>
+        
+        {/* HỌA TIẾT TRANG TRÍ GÓC BANNER */}
+        <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none hidden md:block" />
       </div>
 
       {/* TOOLBAR */}
@@ -260,8 +263,6 @@ function ProductsContent() {
           <ProductCard
             key={p.id}
             product={p}
-            isLiked={wishlist.includes(p.id)}
-            onToggleWishlist={toggleWishlist}
             onAddToCart={addToCart}
           />
         ))}

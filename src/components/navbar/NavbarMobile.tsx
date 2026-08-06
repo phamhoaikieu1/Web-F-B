@@ -2,41 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Store, ShoppingBag, Menu, X, Heart, User, ChevronRight, Phone, MessageSquare, ShieldCheck } from 'lucide-react'
+import { Store, ShoppingBag, Menu, X, ChevronRight, MessageSquare, Phone } from 'lucide-react'
 import SearchBar from '@/components/SearchBar'
-import { Category, Profile } from '@/types/database'
-import { createBrowserClient } from '@supabase/ssr'
+import { Category } from '@/types/database'
 
 interface NavbarMobileProps {
   categories: Category[]
   cartCount: number
-  wishlistCount: number
 }
 
 export default function NavbarMobile({
   categories,
   cartCount,
-  wishlistCount,
 }: NavbarMobileProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [bannerIndex, setBannerIndex] = useState(0)
-  const [profile, setProfile] = useState<Profile | null>(null)
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  useEffect(() => {
-    async function loadUserProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        if (data) setProfile(data)
-      }
-    }
-    loadUserProfile()
-  }, [])
 
   const bannerMessages = [
     "🎉 Tổng kho nguyên liệu F&B giá sỉ - Cam kết chính hãng 100%",
@@ -63,70 +43,57 @@ export default function NavbarMobile({
   }, [])
 
   return (
-    // Bỏ class `sticky top-0` để không fix cứng khi cuộn trang
     <header className="md:hidden bg-white border-b border-slate-200 shadow-2xs relative">
-      {/* 1. Top Banner slider mỏng */}
-      <div className="bg-slate-900 text-slate-200 text-[10px] py-1 px-4 text-center overflow-hidden">
+      {/* 1. Top Banner slider mỏng - Tone Primary F&B Green #006838 */}
+      <div className="bg-[#006838] text-white text-[10px] py-1 px-4 text-center overflow-hidden font-medium">
         <div className="h-4 flex items-center justify-center">
-          <span className="animate-in fade-in duration-300 font-medium truncate">
+          <span className="animate-in fade-in duration-300 truncate">
             {bannerMessages[bannerIndex]}
           </span>
         </div>
       </div>
 
       {/* 2. Header Mobile */}
-      <div className="px-3 py-2 space-y-2">
+      <div className="px-3 py-2.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
           {/* Hamburger Menu Button */}
           <button
             type="button"
             onClick={() => setIsMenuOpen(true)}
-            className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-800 cursor-pointer shrink-0"
+            className="p-1.5 hover:bg-emerald-50 rounded-xl text-slate-800 cursor-pointer shrink-0 border border-slate-200/60"
+            aria-label="Mở menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5 text-[#006838]" />
           </button>
 
           {/* Logo F&B Store */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="bg-emerald-600 p-1.5 rounded-xl text-white shadow-xs">
+            <div className="bg-[#006838] p-1.5 rounded-xl text-white shadow-2xs">
               <Store className="w-5 h-5" />
             </div>
             <div>
               <span className="font-black text-base tracking-tight text-slate-900 block leading-none">F&B STORE</span>
-              <span className="text-[8px] font-bold text-emerald-600 tracking-widest block uppercase mt-0.5">B2B Ingredient</span>
+              <span className="text-[8px] font-bold text-[#006838] tracking-widest block uppercase mt-0.5">B2B Ingredient</span>
             </div>
           </Link>
 
-          {/* Cụm Icon Phím Tắt */}
-          <div className="flex items-center gap-1 shrink-0">
-            {profile && (
-              <Link
-                href="/admin/orders"
-                className="bg-blue-950 text-amber-300 border border-amber-400/40 p-1.5 rounded-xl font-bold text-[10px] flex items-center gap-1 shrink-0"
-                title="Cổng Admin"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-400" />
-                <span className="hidden sm:inline">Admin</span>
-              </Link>
-            )}
+          {/* Cụm Icon Phím Tắt Zalo + Giỏ Hàng */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href="https://zalo.me/0989830347"
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 bg-emerald-50 text-[#006838] border border-emerald-200/80 rounded-xl font-bold text-[10px] flex items-center gap-1"
+              title="Chat Zalo B2B"
+            >
+              <MessageSquare className="w-4 h-4 text-[#006838]" />
+              <span className="hidden sm:inline font-bold">Zalo</span>
+            </a>
 
-            <Link href="/login" className="p-1.5 text-slate-700 hover:text-emerald-600">
-              <User className="w-5 h-5" />
-            </Link>
-
-            <Link href="/wishlist" className="p-1.5 text-slate-700 hover:text-red-600 relative">
-              <Heart className="w-5 h-5" />
-              {wishlistCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white font-bold text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
-
-            <Link href="/cart" className="p-1.5 text-slate-700 hover:text-emerald-600 relative">
+            <Link href="/cart" className="p-2 text-slate-700 hover:text-[#006838] relative bg-slate-100/80 rounded-xl">
               <ShoppingBag className="w-5 h-5" />
               {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 bg-amber-400 text-slate-900 font-black text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white">
+                <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-900 font-black text-[8px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
                   {cartCount}
                 </span>
               )}
@@ -134,7 +101,7 @@ export default function NavbarMobile({
           </div>
         </div>
 
-        {/* Ô Tìm Kiếm Hàng Dưới */}
+        {/* Ô Tìm Kiếm Hàng Dưới Prominent Centered */}
         <div className="w-full">
           <SearchBar />
         </div>
@@ -145,19 +112,17 @@ export default function NavbarMobile({
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex">
           <div className="bg-white w-[82%] max-w-xs h-full shadow-2xl p-5 flex flex-col justify-between animate-in slide-in-from-left duration-300 relative overflow-y-auto">
             <div className="space-y-5">
-              {/* Header Drawer: Hiện Logo thay vì dòng chữ khô cứng */}
               <div className="flex justify-between items-center border-b pb-3">
                 <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
-                  <div className="bg-emerald-600 p-1.5 rounded-xl text-white">
+                  <div className="bg-[#006838] p-1.5 rounded-xl text-white">
                     <Store className="w-5 h-5" />
                   </div>
                   <div>
                     <span className="font-black text-base text-slate-900 block leading-none">F&B STORE</span>
-                    <span className="text-[8px] font-bold text-emerald-600 tracking-widest block uppercase mt-0.5">B2B Ingredient</span>
+                    <span className="text-[8px] font-bold text-[#006838] tracking-widest block uppercase mt-0.5">B2B Ingredient</span>
                   </div>
                 </Link>
-                
-                {/* Nút X Tắt */}
+
                 <button
                   type="button"
                   onClick={() => setIsMenuOpen(false)}
@@ -167,13 +132,12 @@ export default function NavbarMobile({
                 </button>
               </div>
 
-              {/* Danh sách danh mục nguyên liệu */}
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1">Danh Mục Nguyên Liệu</p>
                 <Link
                   href="/products"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-between p-2.5 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl font-bold text-xs text-slate-800"
+                  className="flex items-center justify-between p-2.5 hover:bg-emerald-50 hover:text-[#006838] rounded-xl font-bold text-xs text-slate-800"
                 >
                   <span>Tất Cả Nguyên Liệu F&B</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -183,7 +147,7 @@ export default function NavbarMobile({
                     key={cat.id}
                     href={`/products?category=${cat.id}`}
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center justify-between p-2.5 hover:bg-slate-50 hover:text-emerald-600 rounded-xl font-medium text-xs text-slate-700"
+                    className="flex items-center justify-between p-2.5 hover:bg-emerald-50 hover:text-[#006838] rounded-xl font-medium text-xs text-slate-700"
                   >
                     <span>{cat.name}</span>
                     <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -191,18 +155,8 @@ export default function NavbarMobile({
                 ))}
               </div>
 
-              {/* Bổ sung các nút chức năng hoạt động được bên dưới (Tham khảo XXXLutz) */}
               <div className="border-t pt-4 space-y-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1">Tài Khoản & Đơn Hàng</p>
-                
-                <Link
-                  href="/login"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700"
-                >
-                  <User className="w-4 h-4 text-emerald-600" />
-                  <span>Tài Khoản Của Tôi</span>
-                </Link>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1">Giỏ Hàng Đặt Hàng</p>
 
                 <Link
                   href="/cart"
@@ -210,7 +164,7 @@ export default function NavbarMobile({
                   className="flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700"
                 >
                   <div className="flex items-center gap-3">
-                    <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                    <ShoppingBag className="w-4 h-4 text-[#006838]" />
                     <span>Giỏ Hàng Đặt Sỉ</span>
                   </div>
                   {cartCount > 0 && (
@@ -219,40 +173,29 @@ export default function NavbarMobile({
                     </span>
                   )}
                 </Link>
-
-                <Link
-                  href="/wishlist"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700"
-                >
-                  <div className="flex items-center gap-3">
-                    <Heart className="w-4 h-4 text-red-500" />
-                    <span>Danh Sách Yêu Thích</span>
-                  </div>
-                  {wishlistCount > 0 && (
-                    <span className="bg-red-500 text-white font-bold text-[9px] px-2 py-0.5 rounded-full">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </Link>
               </div>
             </div>
 
-            {/* Khối Đăng Nhập / Zalo Nhanh Ở Đáy Menu */}
             <div className="border-t pt-4 space-y-2 mt-4">
               <a
                 href="https://zalo.me/0989830347"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-[#006838] hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>CHÁT ZALO B2B 24/7</span>
               </a>
+              <a
+                href="tel:0989830347"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <Phone className="w-4 h-4 text-[#006838]" />
+                <span>Hotline: 0989.830.347</span>
+              </a>
             </div>
           </div>
 
-          {/* Vùng nền mờ click đóng */}
           <div className="flex-1 cursor-pointer" onClick={() => setIsMenuOpen(false)} />
         </div>
       )}

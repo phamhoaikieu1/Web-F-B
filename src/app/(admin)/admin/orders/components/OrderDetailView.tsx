@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, PackageCheck, Printer, Clock, Package, CheckCircle, XCircle, Banknote, CreditCard } from 'lucide-react'
+import { Eye, PackageCheck, Printer, Clock, Package, CheckCircle, XCircle, Banknote } from 'lucide-react'
 import { Order, OrderItem, Product } from '@/types/database'
 
 export interface ExtendedOrderItem extends OrderItem {
@@ -15,8 +15,6 @@ interface OrderDetailViewProps {
   onMarkAsPaid: (order: Order) => void
   onCancelOrder: (order: Order) => void
   onPrintPackingSlip: (order: Order) => void
-  onMarkAsDebt?: (order: Order) => void
-  onRecordPartialPayment?: (order: Order) => void
 }
 
 export default function OrderDetailView({
@@ -27,8 +25,6 @@ export default function OrderDetailView({
   onMarkAsPaid,
   onCancelOrder,
   onPrintPackingSlip,
-  onMarkAsDebt,
-  onRecordPartialPayment,
 }: OrderDetailViewProps) {
   if (!selectedOrder) {
     return (
@@ -69,7 +65,7 @@ export default function OrderDetailView({
                   <Clock className="w-3.5 h-3.5" /> BƯỚC 1: ĐƠN MỚI
                 </span>
               )}
-              {(selectedOrder.status === 'CONFIRMED' || selectedOrder.status === 'PROCESSING') && (
+              {selectedOrder.status === 'CONFIRMED' && (
                 <span className="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                   <Package className="w-3.5 h-3.5" /> BƯỚC 2: ĐÃ XUẤT KHO
                 </span>
@@ -91,6 +87,7 @@ export default function OrderDetailView({
           <div className="text-xs text-slate-500 space-y-1.5 mt-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
             <p>
               <strong>Khách hàng:</strong> {selectedOrder.customer_name}
+              {selectedOrder.store_name && <span className="ml-1.5 text-emerald-700 font-bold">({selectedOrder.store_name})</span>}
             </p>
             <p>
               <strong>Số điện thoại:</strong> {selectedOrder.customer_phone}
@@ -99,23 +96,14 @@ export default function OrderDetailView({
               <strong>Địa chỉ:</strong> {selectedOrder.customer_address}
             </p>
 
-            {/* BADGE THANH TOÁN CÔNG NỢ */}
+            {/* BADGE THANH TOÁN */}
             <div className="flex items-center gap-2 pt-1.5 border-t border-slate-200/80 mt-1.5">
               <Banknote className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="font-bold text-slate-700">Thanh toán:</span>
-              {paymentStatus === 'UNPAID' && (
+              {paymentStatus === 'UNPAID' ? (
                 <span className="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-[10px] font-bold">⏳ Chưa thanh toán</span>
-              )}
-              {paymentStatus === 'PARTIAL' && (
-                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                  🔶 Đã trả {Number(selectedOrder.paid_amount || 0).toLocaleString('vi-VN')}đ / {Number(selectedOrder.total_amount).toLocaleString('vi-VN')}đ
-                </span>
-              )}
-              {paymentStatus === 'PAID' && (
+              ) : (
                 <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">✅ Đã thanh toán đủ</span>
-              )}
-              {paymentStatus === 'DEBT' && (
-                <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-[10px] font-bold">🔴 Ghi nợ gối đầu</span>
               )}
             </div>
 
@@ -123,9 +111,9 @@ export default function OrderDetailView({
             <div className="border-t border-slate-200/80 pt-2 mt-2 space-y-1 text-[11px] font-mono">
               <p className="text-slate-700">
                 📌 <strong>Nguồn tạo đơn:</strong>{' '}
-                {selectedOrder.created_by_type === 'STAFF_POS'
-                  ? `👨‍💼 NV ${selectedOrder.created_by_name || 'POS'} lên đơn hộ tại quầy`
-                  : selectedOrder.created_by_type === 'CUSTOMER_SELF'
+                {(selectedOrder as any).created_by_type === 'STAFF_POS'
+                  ? `👨‍💼 NV ${(selectedOrder as any).created_by_name || 'POS'} lên đơn hộ tại quầy`
+                  : (selectedOrder as any).created_by_type === 'CUSTOMER_SELF'
                   ? '👤 Khách tự chốt đơn qua Storefront'
                   : '👤 Khách ẩn danh'}
               </p>
@@ -224,49 +212,25 @@ export default function OrderDetailView({
             </div>
           )}
 
-          {(selectedOrder.status === 'CONFIRMED' || selectedOrder.status === 'PROCESSING') && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  onClick={() => onMarkAsPaid(selectedOrder)}
-                  disabled={processingId === selectedOrder.id}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300 shadow-md"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  💰 XÁC NHẬN ĐÃ NHẬN TIỀN
-                </button>
+          {selectedOrder.status === 'CONFIRMED' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={() => onMarkAsPaid(selectedOrder)}
+                disabled={processingId === selectedOrder.id}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300 shadow-md"
+              >
+                <CheckCircle className="w-4 h-4" />
+                💰 XÁC NHẬN ĐÃ NHẬN TIỀN
+              </button>
 
-                <button
-                  onClick={() => onCancelOrder(selectedOrder)}
-                  disabled={processingId === selectedOrder.id}
-                  className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-xl transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Hủy Đơn Hàng
-                </button>
-              </div>
-
-              {/* NÚT CÔNG NỢ */}
-              <div className="grid grid-cols-2 gap-2">
-                {onMarkAsDebt && (
-                  <button
-                    onClick={() => onMarkAsDebt(selectedOrder)}
-                    disabled={processingId === selectedOrder.id}
-                    className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2.5 rounded-xl transition-colors text-[11px] flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300"
-                  >
-                    🔴 Ghi Nợ Gối Đầu
-                  </button>
-                )}
-                {onRecordPartialPayment && (
-                  <button
-                    onClick={() => onRecordPartialPayment(selectedOrder)}
-                    disabled={processingId === selectedOrder.id}
-                    className="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold py-2.5 rounded-xl transition-colors text-[11px] flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300"
-                  >
-                    <CreditCard className="w-3.5 h-3.5" /> Thanh Toán 1 Phần
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={() => onCancelOrder(selectedOrder)}
+                disabled={processingId === selectedOrder.id}
+                className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-3 rounded-xl transition-colors text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-slate-300"
+              >
+                <XCircle className="w-4 h-4" />
+                Hủy Đơn Hàng
+              </button>
             </div>
           )}
 

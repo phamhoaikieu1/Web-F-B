@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Grid, Heart, ShoppingBag, User } from 'lucide-react'
+import { Home, Grid, ShoppingBag } from 'lucide-react'
 
 export default function MobileBottomNav() {
   const pathname = usePathname()
   const [cartCount, setCartCount] = useState(0)
-  const [wishlistCount, setWishlistCount] = useState(0)
 
   // Đừng hiển thị thanh này nếu đang ở trang Admin
   if (pathname.startsWith('/admin')) return null
@@ -22,11 +21,6 @@ export default function MobileBottomNav() {
           setCartCount(parsed.reduce((sum: number, i: any) => sum + i.quantity, 0))
         } catch (e) {}
       } else { setCartCount(0) }
-
-      const savedWishlist = localStorage.getItem('b2b_wishlist')
-      if (savedWishlist) {
-        try { setWishlistCount(JSON.parse(savedWishlist).length) } catch (e) {}
-      } else { setWishlistCount(0) }
     }
 
     updateCounts()
@@ -41,7 +35,7 @@ export default function MobileBottomNav() {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 shadow-lg">
-      <div className="grid grid-cols-5 gap-1 text-center">
+      <div className="grid grid-cols-3 gap-1 text-center">
         
         {/* TRANG CHỦ */}
         <Link 
@@ -54,7 +48,7 @@ export default function MobileBottomNav() {
           <span className="text-[10px] mt-0.5">Trang chủ</span>
         </Link>
 
-        {/* SAN PHAM */}
+        {/* SẢN PHẨM */}
         <Link 
           href="/products" 
           className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
@@ -63,24 +57,6 @@ export default function MobileBottomNav() {
         >
           <Grid className="w-5 h-5" />
           <span className="text-[10px] mt-0.5">Sản phẩm</span>
-        </Link>
-
-        {/* YÊU THÍCH */}
-        <Link 
-          href="/wishlist" 
-          className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors relative ${
-            pathname === '/wishlist' ? 'text-red-500 font-bold' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <div className="relative">
-            <Heart className="w-5 h-5" />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-red-500 text-white font-black text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                {wishlistCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] mt-0.5">Yêu thích</span>
         </Link>
 
         {/* GIỎ HÀNG */}
@@ -99,17 +75,6 @@ export default function MobileBottomNav() {
             )}
           </div>
           <span className="text-[10px] mt-0.5">Giỏ hàng</span>
-        </Link>
-
-        {/* TÀI KHOẢN */}
-        <Link 
-          href="/login" 
-          className={`flex flex-col items-center justify-center py-1 rounded-xl transition-colors ${
-            pathname === '/login' ? 'text-emerald-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          <User className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Tài khoản</span>
         </Link>
 
       </div>
